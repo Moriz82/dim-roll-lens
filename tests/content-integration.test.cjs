@@ -12,6 +12,8 @@ const tile=window.document.getElementById('item-synthetic');
 const recommendation=pve.weapons['no hesitation'];
 const names=[recommendation.barrel,recommendation.mag,recommendation.perk1.split('\n')[0],recommendation.perk2.split('\n')[0],recommendation.origin];
 tile.dataset.aegisPerksData=JSON.stringify(Object.fromEntries(names.map((name,i)=>[i+1,{name,icon:''}])));
+const ownedRoll={slots:{barrel:{complete:true,plugs:[{hash:1,name:names[0],icon:'',active:true}]},mag:{complete:true,plugs:[{hash:2,name:names[1],icon:'',active:true}]},perk1:{complete:true,plugs:[{hash:3,name:names[2],icon:'',active:true}]},perk2:{complete:true,plugs:[{hash:4,name:names[3],icon:'',active:true}]},masterwork:{complete:true,plugs:[{hash:5,name:'Range',icon:'',active:true}]},origin:{complete:true,plugs:[{hash:6,name:names[4],icon:'',active:true}]}}};
+tile.dataset.aegisOwnedRoll=JSON.stringify(ownedRoll);
 const stored={ aegisSheetDb:pve,aegisSheetDbPvE:pve,aegisSheetDbPvP:pvp,aegisMode:'both',aegisWelcomeDismissed:true,rollLensEnabled:true };
 const listeners=[];
 function get(keys,cb) { const result=Object.fromEntries((typeof keys==='string'?[keys]:keys||Object.keys(stored)).map(key=>[key,stored[key]])); if(cb) queueMicrotask(()=>cb(result)); return Promise.resolve(result); }
@@ -32,16 +34,26 @@ window.eval(fs.readFileSync(path.resolve('dist/content.js'),'utf8'));
   panel.querySelector('.rl-row').click();assert.match(panel.querySelector('.rl-detail').textContent,/Physic/);
   panel.close();
   // A trait change must replace the old god verdict without duplicating badges.
-  const map=JSON.parse(tile.dataset.aegisPerksData);map[3].name='Unrecommended trait';tile.dataset.aegisPerksData=JSON.stringify(map);
+  const map=JSON.parse(tile.dataset.aegisPerksData);map[3].name='Unrecommended trait';tile.dataset.aegisPerksData=JSON.stringify(map);ownedRoll.slots.perk1.plugs[0].name='Unrecommended trait';tile.dataset.aegisOwnedRoll=JSON.stringify(ownedRoll);
   await new Promise(r=>setTimeout(r,350));assert.notEqual(tile.dataset.rlUsage,'pve');
   assert.equal(tile.querySelectorAll('.rl-badge').length,1);
   assert.equal(tile.querySelector('.rl-badge').textContent,'PVE-1');
-  map[4].name='Another unrecommended trait';tile.dataset.aegisPerksData=JSON.stringify(map);
+  map[4].name='Another unrecommended trait';tile.dataset.aegisPerksData=JSON.stringify(map);ownedRoll.slots.perk2.plugs[0].name='Another unrecommended trait';tile.dataset.aegisOwnedRoll=JSON.stringify(ownedRoll);
   await new Promise(r=>setTimeout(r,250));assert.equal(tile.querySelector('.rl-badge'),null,'Two missing traits must leave the tile clean');
   // No PvP source must not silently fall back to PvE recommendations.
-  map[3].name=names[2]; map[4].name=names[3]; tile.dataset.aegisPerksData=JSON.stringify(map);
+  map[3].name=names[2]; map[4].name=names[3]; tile.dataset.aegisPerksData=JSON.stringify(map);ownedRoll.slots.perk1.plugs[0].name=names[2];ownedRoll.slots.perk2.plugs[0].name=names[3];tile.dataset.aegisOwnedRoll=JSON.stringify(ownedRoll);
   await window.chrome.storage.local.set({aegisSheetDbPvP:null});
   await new Promise(r=>setTimeout(r,250));
   assert.equal(tile.dataset.rlUsage,'pve');
+  // A native popup must keep its original title behavior and receive only socket checks.
+  const popup=window.document.createElement('div');popup.className='item-popup';
+  for(const attr of tile.attributes) if(attr.name.startsWith('data-aegis-')) popup.setAttribute(attr.name,attr.value);
+  popup.innerHTML='<h1>Native weapon title</h1><div id="native-perk" data-rl-plug-hash="3" data-rl-plug-slot="perk1"><svg><image href="perk.png" /></svg></div>';
+  const sentinel=window.document.createElement('div');sentinel.className='aegis-side-panel';window.document.body.append(sentinel);
+  window.document.body.append(popup);await new Promise(r=>setTimeout(r,250));
+  assert.equal(popup.querySelectorAll('.rl-item-card,.aegis-popup-summary,.aegis-title-badge,[data-aegis-details]').length,0);
+  assert.equal(popup.querySelectorAll('.rl-perk-check').length,1);
+  popup.querySelector('h1').click();assert.ok(sentinel.isConnected,'Lens adds no legacy title click action');
+  popup.querySelector('#native-perk').dataset.rlPlugHash='999';await new Promise(r=>setTimeout(r,150));assert.equal(popup.querySelectorAll('.rl-perk-check').length,0,'Native identity mutations rescore their containing popup');
   shutdown();console.log('Built-content integration passed: bundled recommendations, dashboard, mutation rescore, deduplication and missing-source isolation.');
 })().catch(error=>{shutdown();console.error(error);process.exitCode=1;});

@@ -151,6 +151,8 @@ export interface AegisSheetWeapon {
   rank: string;
   tier: string;
   versionTag?: string;
+  /** Stable source tab/row identity; rows with the same display name remain distinct. */
+  sourceRowId?: string;
   mw?: string;
   stun?: string;
   exoticViability?: {
@@ -208,19 +210,33 @@ export interface TooltipPerk {
   type: 'barrel' | 'mag' | 'perk1' | 'perk2' | 'origin';
   status?: 'active' | 'selectable' | 'missing';
   rankIndex?: number;
+  /** The random-roll column this native perk belongs to. */
+  slot?: 'barrel' | 'mag' | 'perk1' | 'perk2' | 'origin' | 'masterwork';
 }
 
 export interface SheetPerksGroup {
   matched: TooltipPerk[];
   missing: TooltipPerk[];
   all?: TooltipPerk[];
+  /** Number of source slots with a concrete recommendation. */
+  matchedCount?: number;
+  /** Perks physically owned by the item, independent of the selected plug. */
+  ownedMatches?: TooltipPerk[];
 }
 
 export interface DualSheetInfo {
   sheetWeaponPvE?: AegisSheetWeapon | null;
   sheetWeaponPvP?: AegisSheetWeapon | null;
+  /** All rows for the resolved weapon edition; rows are evaluated whole. */
+  sheetWeaponPvECandidates?: AegisSheetWeapon[];
+  sheetWeaponPvPCandidates?: AegisSheetWeapon[];
   sheetPerksPvE?: SheetPerksGroup | null;
   sheetPerksPvP?: SheetPerksGroup | null;
+  sheetPerksPvECandidates?: SheetPerksGroup[];
+  sheetPerksPvPCandidates?: SheetPerksGroup[];
+  sourceResolution?: 'resolved' | 'incomplete' | 'missing' | 'ambiguous';
+  sourceResolutionPvE?: 'resolved' | 'incomplete' | 'missing' | 'ambiguous';
+  sourceResolutionPvP?: 'resolved' | 'incomplete' | 'missing' | 'ambiguous';
   pveResult?: ScoringResult | null;
   pvpResult?: ScoringResult | null;
   bestAlternativePvE?: string;
@@ -259,6 +275,16 @@ export interface AegisShoppingDatabase {
   alternativesMap: Record<string, { primaryName: string; role: string; priority: string; priorityNum: number }>;
 }
 
+export interface OwnedRollPlugData {
+  hash: number;
+  name: string;
+  icon: string;
+  active: boolean;
+}
+export interface OwnedRollData {
+  slots: Record<'barrel' | 'mag' | 'perk1' | 'perk2' | 'masterwork' | 'origin', { complete: boolean; plugs: OwnedRollPlugData[] }>;
+}
+
 /**
  * Universal, strongly-typed evaluation payload attached to a weapon/armor DOM tile via WeakMap.
  */
@@ -282,8 +308,16 @@ export interface WeaponEvaluationPayload {
   shoppingAltPvP?: { primaryName: string; role: string } | null;
   sheetWeaponPvE?: AegisSheetWeapon | null;
   sheetWeaponPvP?: AegisSheetWeapon | null;
+  sheetWeaponPvECandidates?: AegisSheetWeapon[];
+  sheetWeaponPvPCandidates?: AegisSheetWeapon[];
   sheetPerksPvE?: SheetPerksGroup | null;
   sheetPerksPvP?: SheetPerksGroup | null;
+  sheetPerksPvECandidates?: SheetPerksGroup[];
+  sheetPerksPvPCandidates?: SheetPerksGroup[];
+  sourceResolution?: 'resolved' | 'incomplete' | 'missing' | 'ambiguous';
+  sourceResolutionPvE?: 'resolved' | 'incomplete' | 'missing' | 'ambiguous';
+  sourceResolutionPvP?: 'resolved' | 'incomplete' | 'missing' | 'ambiguous';
+  ownedRoll?: OwnedRollData;
   pveResult?: ScoringResult | null;
   pvpResult?: ScoringResult | null;
   bestAlternativePvE?: string;
@@ -291,4 +325,3 @@ export interface WeaponEvaluationPayload {
   isBestInClassPvE?: boolean;
   isBestInClassPvP?: boolean;
 }
-

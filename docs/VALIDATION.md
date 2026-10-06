@@ -1,5 +1,22 @@
 # Release validation
 
+## Version 2.1.0 — October 6, 2026
+
+This release supersedes the earlier active-perk definitions. God rolls require one complete five-slot recommendation: barrel, magazine, trait 1, trait 2 and masterwork. All owned options count, including inactive choices. Recommendation rows remain separate, and manifest/craftable possibilities do not count as owned. Missing source slots, incomplete item sockets and ambiguous weapon editions show gray slashed UNDEF unless a known god or one-away verdict takes priority.
+
+- Unit/DOM regressions passed for coherent combinations, inactive owned alternatives, wrong-column rejection, enhanced perk names, exact masterworks, missing source fields, weapon edition resolution, stale native markers and selection invariance.
+- Built-bundle integrations passed, including a native popup opened after its tile was cached using the same DIM item object. Native icon identities and gold checks are attached on both fresh and cached bridge paths. Lens mode adds no custom item card, hover card or title action.
+- TypeScript, both production builds and browser ZIP validation passed. An independent read-only review found no remaining material issue after fixes for cached popup annotation and legacy popup injection.
+- A private, read-only inventory snapshot covered all four DIM stores with no store errors. The refreshed snapshot contained **389 items: 97 weapons, 69 armor and 223 other items**. All 97 weapons passed an independent whole-row five-slot oracle; 497 owned plug hashes were checked against actual reusable/plugged sockets. Flipping every selected-perk flag left all verdicts and native check sets unchanged. Nonweapon items are excluded from Roll Lens labels.
+- The inventory changed during testing. An earlier snapshot also passed for all 405 items, including 107 weapons. The refreshed snapshot is the final coverage receipt. Snapshots and live screenshots remain local and are excluded from the public repository; `scripts/validate-owned-inventory.cjs` can check another private snapshot without printing or uploading its inventory.
+- The final packaged extension was reloaded in signed-in Firefox Nightly. DIM's native Recluse perk section displayed gold rings and checks on two recommended owned perks, retained its native controls, and contained zero added item cards/title badges. Live tiles displayed god, one-away, blank and gray slashed undefined states. The temporary debugging tab was closed after testing.
+
+The final inventory had 1 PVE, 4 PVP, 1 PVE-1, 5 PVP-1, 1 dual one-away, 9 blank and 76 UNDEF verdicts. UNDEF is intentionally conservative: the community sources often omit one of the required five slots or do not distinguish every weapon edition. These checks prove matching against the available recommendations, not universal coverage or correctness of the authors' opinions.
+
+## Historical releases
+
+The definitions described below are historical and have been replaced by v2.1.0.
+
 ## Version 2.0.1 — October 6, 2026
 
 Focused regressions confirm that tiles show only PVE / PVP / BOTH for active god rolls, PVE-1 / PVP-1 when exactly one slot required by the selected definition is not active, and no badge for other rolls. God-roll labels take priority over the other activity's one-away label. Unknown/fixed items cannot acquire a one-away label. Removal and recreation after item mutations, and settling without repeat writes on unlabeled tiles, are covered.
@@ -16,6 +33,6 @@ TypeScript, browser packages and built-content integration checks passed. The ex
 - The packaged Firefox build was temporarily installed into Firefox Nightly **157.0a1** and checked on signed-in DIM. Live badges displayed PvE, PvP, BOTH, swap, fixed and unrated states. The dashboard's BOTH filter matched its displayed count and selected items showed independently evaluated activity recommendations. A weapon with active Auto-Loading Holster / Chill Clip showed a PvE match and identified selectable Cornered for PvP, without changing perks or inventory.
 - An independent read-only code review found no material issue in verdict matching, source separation, cached-data retention and package contents.
 
-Live inventory screenshots and account identifiers are not included in this repository. The checked inventory is a compatibility sample, not exhaustive coverage of every weapon or DIM layout. The dashboard covers weapon instances currently loaded in the DOM. Recommendations remain source opinions, and the default definition requires both main traits; the strict definition also requires every specified detail.
+Live inventory screenshots and account identifiers are not included in this repository. The checked inventory is a compatibility sample, not exhaustive coverage of every possible weapon or DIM layout. The dashboard covers weapon instances currently loaded in the DOM. Recommendations remain source opinions.
 
 Firefox builds are unsigned temporary developer builds. Mozilla signing and persistent Firefox installation have not been completed. Chromium packages were built and validated, but signed-in browser testing for this release was performed in Firefox Nightly.

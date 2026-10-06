@@ -1,0 +1,18 @@
+const assert=require('node:assert/strict');const {load,sheet,payload,group}=require('./lens-helpers.cjs');
+const {resolveRollSourceCandidates}=load('roll-lens-source');const {evaluateLens}=load('roll-lens');
+const origin=[{slot:'origin',hash:99,name:'Origin',active:true,icon:''}];
+const first={...sheet,name:'Test weapon (Release A)',versionTag:'Release A',origin:'Origin'};
+const second={...first,perk1:'Other A',perk2:'Other B'};
+const db={weapons:{'test weapon':first},variants:{'test weapon':[first,second]}};
+let resolved=resolveRollSourceCandidates(db,'Test weapon',1,origin);assert.equal(resolved.resolution,'resolved');assert.equal(resolved.rows.length,2,'Separate combinations for one edition remain separate candidates');
+const d=payload(group(),group());d.sheetWeaponPvECandidates=[{...sheet,barrel:'Other barrel'},{...sheet,mag:'Other mag'}];d.sheetWeaponPvPCandidates=[{...sheet,barrel:'Other barrel'},{...sheet,mag:'Other mag'}];
+assert.equal(evaluateLens(d).badge,'PVE-1 PVP-1','Two separate 4/5 rows cannot combine into 5/5');
+const wrong=payload(group(),group());[wrong.ownedRoll.slots.perk1.plugs[0].name,wrong.ownedRoll.slots.perk2.plugs[0].name]=[wrong.ownedRoll.slots.perk2.plugs[0].name,wrong.ownedRoll.slots.perk1.plugs[0].name];assert.equal(evaluateLens(wrong).badge,'','Recommended traits in the wrong columns do not count');
+const enhanced=payload(group(),group());enhanced.ownedRoll.slots.perk1.plugs[0].name='Enhanced Trait A';enhanced.ownedRoll.slots.perk2.plugs[0].name='Trait B (Enhanced)';assert.equal(evaluateLens(enhanced).badge,'BOTH');
+resolved=resolveRollSourceCandidates({weapons:db.weapons,variants:{'test weapon':[first,{...first,name:'Test weapon (Release B)',versionTag:'Release B'}]}},'Test weapon',1,origin);assert.equal(resolved.resolution,'ambiguous','An origin shared by different editions cannot pick the most favorable roll');
+const empty=payload(group(),group());empty.sheetWeaponPvECandidates=[];empty.sheetWeaponPvPCandidates=[];assert.equal(evaluateLens(empty).badge,'UNDEF','Explicitly unresolved candidates never borrow the legacy sheet selection');
+const incomplete=payload(group(),group());incomplete.ownedRoll.slots.mag.complete=false;assert.equal(evaluateLens(incomplete).badge,'UNDEF');
+const nearPriority=payload(group(['missing','active','active','active']));assert.equal(evaluateLens(nearPriority).badge,'PVE-1','4/5 takes priority over missing other-activity coverage');
+const fixed=payload(group());fixed.sheetWeaponPvE={...sheet,source:'Exotic',mw:''};fixed.sheetWeaponPvECandidates=[fixed.sheetWeaponPvE];assert.equal(evaluateLens(fixed).badge,'UNDEF','An exotic viability tier cannot fabricate five-slot coverage');
+const guard=payload(group(),group());guard.sheetWeaponPvE={...sheet,mw:'N/A'};guard.sheetWeaponPvP=null;guard.sheetWeaponPvECandidates=[guard.sheetWeaponPvE];guard.sheetWeaponPvPCandidates=[];assert.equal(evaluateLens(guard).badge,'UNDEF');
+console.log('10 source/ownership checks passed: whole combinations, exact columns, enhanced names, edition ambiguity, unresolved isolation and label precedence.');

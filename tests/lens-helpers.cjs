@@ -11,11 +11,17 @@ function load(name) {
   cache.set(file, module.exports); return module.exports;
 }
 const sheet = { name: 'Test weapon', energy: 'Solar', frame: 'Adaptive', barrel: 'Barrel', mag: 'Magazine', perk1: 'Trait A', perk2: 'Trait B', origin: 'Origin', notes: 'A source note.', tier: 'S', rank: '1', mw: 'Range' };
-function group(states = ['active','active','active','active']) {
-  const all = ['barrel','mag','perk1','perk2'].map((type,i) => ({ type, name: ['Barrel','Magazine','Trait A','Trait B'][i], status: states[i], matched: states[i] !== 'missing', hash: i + 1 }));
-  return { all, matched: all.filter(p => p.matched), missing: all.filter(p => !p.matched) };
+function ownedRoll(states = ['active','active','active','active']) {
+  const slots = {};
+  [['barrel','Barrel'],['mag','Magazine'],['perk1','Trait A'],['perk2','Trait B']].forEach(([slot,name], i) => {
+    slots[slot] = { complete: true, plugs: [{ hash: i + 1, name: states[i] === 'missing' ? 'Other option' : name, icon: '', active: states[i] === 'active' }] };
+  });
+  slots.masterwork = { complete: true, plugs: [{ hash: 5, name: 'Range', icon: '', active: true }] };
+  slots.origin = { complete: false, plugs: [] };
+  return { slots };
 }
-function payload(pve = group(), pvp = null) {
-  return { name: 'Test weapon', result: { grade: 'S+', matchPercentage: 100, matchedPerks: [], missingPerks: [], wishlistPerks: [], notes: '' }, perksMap: {}, equippedMasterwork: 'Range', sheetWeaponPvE: sheet, sheetWeaponPvP: pvp ? sheet : null, sheetPerksPvE: pve, sheetPerksPvP: pvp };
+function payload(pve = ownedRoll(), pvp = null) {
+  return { name: 'Test weapon', result: { grade: 'S+', matchPercentage: 100, matchedPerks: [], missingPerks: [], wishlistPerks: [], notes: '' }, perksMap: {}, sheetWeaponPvE: sheet, sheetWeaponPvP: pvp ? sheet : null, sheetWeaponPvECandidates: [sheet], sheetWeaponPvPCandidates: pvp ? [sheet] : [], ownedRoll: pve };
 }
-module.exports = { load, sheet, group, payload };
+const group = ownedRoll;
+module.exports = { load, sheet, ownedRoll, group, payload };

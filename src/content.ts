@@ -13,6 +13,8 @@ import { outermostElements, safeSetInnerHTML, withoutTileReorders } from './dom-
 import { applyBadgePresentation, badgeCategory, normalizeBadgeSize, normalizeBadgeVisibility } from './badge-presentation';
 import { measurePerkCardWidth } from './card-width';
 import { applyLens, configureLens, initLensDashboard, isLensEnabled, updateLensStatus } from './roll-lens-ui';
+import { resolveRollSourceCandidates } from './roll-lens-source';
+import type { OwnedRollPerk } from './owned-rolls';
 
 /** Strongly typed, GC-safe storage for weapon/armor evaluation data attached to DOM tiles */
 export const weaponDataMap = new WeakMap<HTMLElement, WeaponEvaluationPayload>();
@@ -1129,6 +1131,15 @@ function prepareAvailablePerks(perksMap: Record<number, { name: string; icon: st
   return Object.entries(perksMap).flatMap(([hashStr, p]) => {
     const hash = parseInt(hashStr, 10);
     return isNaN(hash) ? [] : [{ hash, name: p.name.toLowerCase().trim(), icon: p.icon, active: activeHashes.includes(hash) }];
+  });
+}
+
+function ownedRollPerksFromMap(perksMap: Record<number, { name: string; icon: string; slot?: OwnedRollPerk['slot']; active?: boolean }>, activeHashes: number[]): OwnedRollPerk[] {
+  return Object.entries(perksMap).flatMap(([hashStr, perk]) => {
+    const hash = Number(hashStr);
+    const slot = perk.slot;
+    if (!Number.isFinite(hash) || !slot || slot === 'masterwork') return [];
+    return [{ hash, name: perk.name || '', icon: perk.icon || '', slot, active: perk.active ?? activeHashes.includes(hash) }];
   });
 }
 
@@ -4671,6 +4682,11 @@ function injectPopupSummary(
   equippedMasterwork?: string,
   dualInfo?: DualSheetInfo
 ) {
+  if (isLensEnabled()) {
+    if (activeDetailsTimeout) { clearTimeout(activeDetailsTimeout); activeDetailsTimeout = null; }
+    popupContainer.querySelectorAll('.aegis-popup-summary, .aegis-title-badge, [data-aegis-details], .aegis-popup-details-card').forEach(node => node.remove());
+    return;
+  }
   const titleEl = (popupContainer.querySelector('h1, h2, [class*="title" i], [class*="header" i], [class*="name" i]')
     || popupContainer.parentElement?.querySelector('h1, h2, [class*="title" i], [class*="header" i], [class*="name" i]')
     || popupContainer.firstElementChild) as HTMLElement | null;
@@ -4678,6 +4694,7 @@ function injectPopupSummary(
   if (titleEl && !boundPopupTitles.has(titleEl)) {
     boundPopupTitles.add(titleEl);
     titleEl.addEventListener('click', () => {
+      if (isLensEnabled()) return;
       hideTooltip();
       document.querySelectorAll('.aegis-side-panel').forEach((el) => el.remove());
       document.querySelectorAll('.aegis-popup-details-card').forEach((el) => el.remove());
@@ -5630,7 +5647,7 @@ function removeBadge(el: HTMLElement) {
 function evaluateWeapon(
   weaponName: string, itemHash: number, perkHashes: number[],
   perksMap: Record<number, { name: string; icon: string }>, activeHashes: number[],
-  elText: string, rawInstanceId: string, equippedMasterwork: string,
+  elText: string, rawInstanceId: string, equippedMasterwork: string, ownedRoll?: WeaponEvaluationPayload['ownedRoll'],
 ) {
   let result: ScoringResult;
   let sheetPerks = undefined;
@@ -5640,8 +5657,14 @@ function evaluateWeapon(
 
   let sheetWeaponPvE: AegisSheetWeapon | null = null;
   let sheetWeaponPvP: AegisSheetWeapon | null = null;
+  let sheetWeaponPvECandidates: AegisSheetWeapon[] = [];
+  let sheetWeaponPvPCandidates: AegisSheetWeapon[] = [];
+  let sourceResolutionPvE: 'resolved' | 'incomplete' | 'missing' | 'ambiguous' = 'missing';
+  let sourceResolutionPvP: 'resolved' | 'incomplete' | 'missing' | 'ambiguous' = 'missing';
   let sheetPerksPvE: SheetPerksGroup | undefined = undefined;
   let sheetPerksPvP: SheetPerksGroup | undefined = undefined;
+  let sheetPerksPvECandidates: SheetPerksGroup[] = [];
+  let sheetPerksPvPCandidates: SheetPerksGroup[] = [];
   let pveResult: ScoringResult | null = null;
   let pvpResult: ScoringResult | null = null;
   let bestAlternativePvE: string | undefined = undefined;
@@ -5705,8 +5728,13 @@ function evaluateWeapon(
       };
     }
   } else if (aegisMode === 'both') {
-    sheetWeaponPvE = aegisSheetDbPvE ? findAegisWeapon(weaponName, perksMap, activeHashes, elText, itemHash, aegisSheetDbPvE) : null;
-    sheetWeaponPvP = aegisSheetDbPvP ? findAegisWeapon(weaponName, perksMap, activeHashes, elText, itemHash, aegisSheetDbPvP) : null;
+    const ownedRollPerks = ownedRollPerksFromMap(perksMap, activeHashes);
+    const pveSources = aegisSheetDbPvE ? resolveRollSourceCandidates(aegisSheetDbPvE, weaponName, itemHash, ownedRollPerks) : { rows: [], resolution: 'missing' as const };
+    const pvpSources = aegisSheetDbPvP ? resolveRollSourceCandidates(aegisSheetDbPvP, weaponName, itemHash, ownedRollPerks) : { rows: [], resolution: 'missing' as const };
+    sheetWeaponPvECandidates = pveSources.rows; sheetWeaponPvPCandidates = pvpSources.rows;
+    sourceResolutionPvE = pveSources.resolution; sourceResolutionPvP = pvpSources.resolution;
+    sheetWeaponPvE = sheetWeaponPvECandidates[0] || null;
+    sheetWeaponPvP = sheetWeaponPvPCandidates[0] || null;
 
     const availablePerks = sheetWeaponPvE && sheetWeaponPvP &&
       !sheetWeaponPvE.exoticViability && sheetWeaponPvE.source !== 'Exotic' &&
@@ -5718,6 +5746,7 @@ function evaluateWeapon(
         availablePerks);
       pveResult = scorePvE.result;
       sheetPerksPvE = scorePvE.sheetPerks;
+      sheetPerksPvECandidates = sheetWeaponPvECandidates.map(row => scoreSheetWeapon(row, perksMap, activeHashes, 'pve', equippedMasterwork, availablePerks).sheetPerks);
       pveResult.potentialGrade = scorePvE.potentialGrade;
       pveResult.upgradeAdvice = scorePvE.upgradeAdvice;
 
@@ -5765,6 +5794,7 @@ function evaluateWeapon(
         availablePerks);
       pvpResult = scorePvP.result;
       sheetPerksPvP = scorePvP.sheetPerks;
+      sheetPerksPvPCandidates = sheetWeaponPvPCandidates.map(row => scoreSheetWeapon(row, perksMap, activeHashes, 'pvp', equippedMasterwork, availablePerks).sheetPerks);
       pvpResult.potentialGrade = scorePvP.potentialGrade;
       pvpResult.upgradeAdvice = scorePvP.upgradeAdvice;
 
@@ -5882,16 +5912,23 @@ function evaluateWeapon(
 
   // Roll Lens always evaluates both activities, independent of legacy badge mode.
   if (aegisMode !== 'both' || scoringSource === 'lightgg') {
-    sheetWeaponPvE = aegisSheetDbPvE ? findAegisWeapon(weaponName, perksMap, activeHashes, elText, itemHash, aegisSheetDbPvE) : null;
-    sheetWeaponPvP = aegisSheetDbPvP ? findAegisWeapon(weaponName, perksMap, activeHashes, elText, itemHash, aegisSheetDbPvP) : null;
+    const ownedRollPerks = ownedRollPerksFromMap(perksMap, activeHashes);
+    const pveSources = aegisSheetDbPvE ? resolveRollSourceCandidates(aegisSheetDbPvE, weaponName, itemHash, ownedRollPerks) : { rows: [], resolution: 'missing' as const };
+    const pvpSources = aegisSheetDbPvP ? resolveRollSourceCandidates(aegisSheetDbPvP, weaponName, itemHash, ownedRollPerks) : { rows: [], resolution: 'missing' as const };
+    sheetWeaponPvECandidates = pveSources.rows; sheetWeaponPvPCandidates = pvpSources.rows;
+    sourceResolutionPvE = pveSources.resolution; sourceResolutionPvP = pvpSources.resolution;
+    sheetWeaponPvE = sheetWeaponPvECandidates[0] || null;
+    sheetWeaponPvP = sheetWeaponPvPCandidates[0] || null;
     const available = prepareAvailablePerks(perksMap, activeHashes);
     if (sheetWeaponPvE) {
       const score = scoreSheetWeapon(sheetWeaponPvE, perksMap, activeHashes, 'pve', equippedMasterwork, available);
       sheetPerksPvE = score.sheetPerks; pveResult = score.result;
+      sheetPerksPvECandidates = sheetWeaponPvECandidates.map(row => scoreSheetWeapon(row, perksMap, activeHashes, 'pve', equippedMasterwork, available).sheetPerks);
     }
     if (sheetWeaponPvP) {
       const score = scoreSheetWeapon(sheetWeaponPvP, perksMap, activeHashes, 'pvp', equippedMasterwork, available);
       sheetPerksPvP = score.sheetPerks; pvpResult = score.result;
+      sheetPerksPvPCandidates = sheetWeaponPvPCandidates.map(row => scoreSheetWeapon(row, perksMap, activeHashes, 'pvp', equippedMasterwork, available).sheetPerks);
     }
   }
 
@@ -5921,10 +5958,11 @@ function evaluateWeapon(
   return {
     result, sheetPerks, sheetWeapon, bestAlternative,
     isBestInClass, sheetWeaponPvE, sheetWeaponPvP, sheetPerksPvE,
-    sheetPerksPvP, pveResult, pvpResult, bestAlternativePvE,
+    sheetPerksPvP, sheetWeaponPvECandidates, sheetWeaponPvPCandidates, sheetPerksPvECandidates, sheetPerksPvPCandidates,
+    sourceResolutionPvE, sourceResolutionPvP, pveResult, pvpResult, bestAlternativePvE,
     bestAlternativePvP, isBestInClassPvE, isBestInClassPvP, hasSheetData,
     normWName, shoppingItem, shoppingAlt, shoppingItemPvE,
-    shoppingAltPvE, shoppingItemPvP, shoppingAltPvP, dualInfo,
+    shoppingAltPvE, shoppingItemPvP, shoppingAltPvP, dualInfo, ownedRoll,
   };
 }
 
@@ -6113,6 +6151,11 @@ function processElement(el: HTMLElement) {
     const itemHash = parseInt(itemHashStr, 10);
     const instanceId = el.getAttribute('data-aegis-instance-id');
     const activePerksDataStr = el.getAttribute('data-aegis-active-perk-hashes');
+    const ownedRollStr = el.getAttribute('data-aegis-roll-slots') || el.getAttribute('data-aegis-owned-roll');
+    let ownedRoll: WeaponEvaluationPayload['ownedRoll'];
+    if (ownedRollStr) {
+      try { ownedRoll = JSON.parse(ownedRollStr); } catch { ownedRoll = undefined; }
+    }
     // Winnower's name cell excludes the surrounding verdict and perk text.
     const elText = IS_WINNOWER_HOST ? winnowerNameCell(el)?.textContent || '' : el.textContent || '';
     const rawInstanceId = instanceId || el.id.replace('item-', '');
@@ -6123,7 +6166,7 @@ function processElement(el: HTMLElement) {
     const hasVariants = [aegisSheetDb, aegisSheetDbPvE, aegisSheetDbPvP].some(db =>
       (db?.variants?.[baseName] || db?.variants?.[lookupName] || []).length > 1);
     const textSignals = hasVariants ? elText : '';
-    const signature = [itemHashStr, weaponName, perkHashesStr, perksDataStr, activePerksDataStr, equippedMasterwork, textSignals];
+    const signature = [itemHashStr, weaponName, perkHashesStr, perksDataStr, activePerksDataStr, ownedRollStr, equippedMasterwork, textSignals];
     let cached = inventoryId ? inventoryEvaluations.get(inventoryId) : undefined;
     if (cached && !signature.every((value, i) => value === cached!.signature[i])) cached = undefined;
 
@@ -6182,7 +6225,7 @@ function processElement(el: HTMLElement) {
     }
 
     const evaluation = cached ? cached.value : evaluateWeapon(
-      weaponName, itemHash, perkHashes, perksMap, activeHashes, elText, rawInstanceId, equippedMasterwork,
+      weaponName, itemHash, perkHashes, perksMap, activeHashes, elText, rawInstanceId, equippedMasterwork, ownedRoll,
     );
     if (inventoryId && cached?.value !== evaluation) {
       inventoryEvaluations.delete(inventoryId);
@@ -6194,7 +6237,9 @@ function processElement(el: HTMLElement) {
     const {
       sheetPerks, sheetWeapon, bestAlternative,
       isBestInClass, sheetWeaponPvE, sheetWeaponPvP, sheetPerksPvE,
-      sheetPerksPvP, pveResult, pvpResult, bestAlternativePvE,
+      sheetPerksPvP, sheetWeaponPvECandidates, sheetWeaponPvPCandidates,
+      sheetPerksPvECandidates, sheetPerksPvPCandidates, sourceResolutionPvE, sourceResolutionPvP,
+      pveResult, pvpResult, bestAlternativePvE,
       bestAlternativePvP, isBestInClassPvE, isBestInClassPvP, hasSheetData,
       normWName, shoppingItem, shoppingAlt, shoppingItemPvE,
       shoppingAltPvE, shoppingItemPvP, shoppingAltPvP, dualInfo,
@@ -6206,6 +6251,7 @@ function processElement(el: HTMLElement) {
       name: weaponName,
       perksMap,
       activeHashes,
+      ownedRoll,
       sheetWeapon: hasSheetData ? sheetWeapon : null,
       bestAlternative,
       isBestInClass,
@@ -6220,8 +6266,14 @@ function processElement(el: HTMLElement) {
       shoppingAltPvP,
       sheetWeaponPvE,
       sheetWeaponPvP,
+      sheetWeaponPvECandidates,
+      sheetWeaponPvPCandidates,
       sheetPerksPvE,
       sheetPerksPvP,
+      sheetPerksPvECandidates,
+      sheetPerksPvPCandidates,
+      sourceResolutionPvE,
+      sourceResolutionPvP,
       pveResult,
       pvpResult,
       bestAlternativePvE,
@@ -7057,10 +7109,14 @@ const ITEM_ATTRIBUTES = [
   'data-aegis-perk-hashes',
   'data-aegis-perks-data',
   'data-aegis-active-perk-hashes',
+  'data-aegis-owned-roll',
+  'data-aegis-roll-slots',
   'data-aegis-masterwork',
   'data-aegis-weapon-possible-perks',
   'data-aegis-armor-perks',
   'data-aegis-armor-stats',
+  'data-rl-plug-hash',
+  'data-rl-plug-slot',
 ];
 const pendingProcessTargets = createItemQueue(item => processElement(item), items => {
   setupRegistryObserver();
@@ -7074,7 +7130,9 @@ const observer = new MutationObserver((mutations) => {
 
     // Check if the custom data attributes were modified
     if (mutation.type === 'attributes') {
-      pendingProcessTargets.add(mutation.target as HTMLElement);
+      const target = mutation.target as HTMLElement;
+      const item = mutation.attributeName?.startsWith('data-rl-plug-') ? target.closest<HTMLElement>('[data-aegis-item-hash]') : null;
+      pendingProcessTargets.add(item || target);
     }
 
     // Check for added nodes that might contain our attributes

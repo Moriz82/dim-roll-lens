@@ -299,6 +299,7 @@ function parseWeaponRows(rows, categoryName, weapons, variants, categories) {
       rank: getVal(row, ['Rank', 'WEAPON #', '#']),
       tier: getVal(row, ['Tier']),
       versionTag: versionTag || undefined,
+      sourceRowId: `${categoryName}:${r}`,
       mw: getVal(row, ['MW', 'PERKS MW']),
       stun: stunVal || undefined,
       exoticViability: hasViability ? {
@@ -321,9 +322,7 @@ function parseWeaponRows(rows, categoryName, weapons, variants, categories) {
     if (!variants[baseNormalized]) {
       variants[baseNormalized] = [];
     }
-    if (!variants[baseNormalized].some(v => v.name === weaponName)) {
-      variants[baseNormalized].push(weaponData);
-    }
+    variants[baseNormalized].push(weaponData);
 
     if (!weapons[baseNormalized]) {
       weapons[baseNormalized] = weaponData;

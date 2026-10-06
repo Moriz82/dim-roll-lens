@@ -2,40 +2,38 @@
 
 **Know immediately whether your weapon is a PvE god roll, a PvP god roll, or both.**
 
-Roll Lens is a browser extension for [Destiny Item Manager](https://app.destinyitemmanager.com/). It puts readable verdicts on your weapon tiles and explains exactly which recommended perks you have, which are selectable, and which are missing.
+Roll Lens is a browser extension for [Destiny Item Manager](https://app.destinyitemmanager.com/). It labels weapon tiles using the perks actually present on each gun and marks recommended choices directly in DIM’s native perk section.
 
 Built on [Maxeption’s dim-aegis-overlay](https://github.com/Maxeption/dim-aegis-overlay). **Thank you, Maxeption, for the original project and its foundation.** Original Git history and contributor attribution are preserved. See [credits](CREDITS.md).
-
-![Roll Lens dashboard showing synthetic demo rolls](docs/images/roll-lens-demo.jpg)
-
-*Screenshot of the interactive demo. These synthetic rolls are interface examples, not a real inventory or current weapon recommendations.*
 
 ## What you see
 
 | Tile label | Meaning |
 | --- | --- |
-| **PVE** | Your active perks meet the PvE god-roll definition. |
-| **PVP** | Your active perks meet the PvP god-roll definition. |
-| **BOTH** | Your active perks meet both definitions at the same time. |
-| **PVE-1** | Exactly one required PvE slot is not an active match. |
-| **PVP-1** | Exactly one required PvP slot is not an active match. |
-| **No label** | All other rolls, including fixed exotics, unrated items and rolls two or more slots away. |
+| **PVE** | The gun owns one complete 5/5 PvE recommendation. |
+| **PVP** | The gun owns one complete 5/5 PvP recommendation. |
+| **BOTH** | The gun owns a complete 5/5 recommendation for each activity. |
+| **PVE-1** | Exactly one of the five recommended PvE slots is missing. |
+| **PVP-1** | Exactly one of the five recommended PvP slots is missing. |
+| **Gray slashed UNDEF** | A source slot or item socket is missing, or the weapon edition cannot be resolved. |
+| **No label** | Complete recommendations exist, but the gun is two or more slots away. Armor and other items have no Roll Lens labels. |
 
-God-roll labels take priority. A PvE god roll that is one perk short for PvP shows **PVE**. If both activities are one perk short, it shows **PVE-1 PVP-1**. A `-1` perk may be selectable or missing; open the item for that distinction. Other overlay tier/grade badges are hidden while Roll Lens is enabled, including armor badges. Detailed explanations remain available in the dashboard and item cards.
+The five slots are **barrel, magazine, trait 1, trait 2 and masterwork**. All options present on the gun count, including inactive perks. Changing which perk is selected does not change its verdict. Craftable or manifest possibilities that are absent from the gun do not count.
 
-PvE uses **Aegis**. PvP uses **Finnald / Pride Eternal**. Activity verdicts use actual perk matches, independently of the weapon’s meta tier and optional Light.gg popularity grade.
+Each verdict requires **one complete recommended combination**. Alternatives inside that source row are allowed; different recommendation rows never combine into a synthetic 5/5. PvE and PvP can each match a different complete combination that the gun owns.
 
-- **Both traits**, the default: both recommended main traits must be active. Barrel, magazine and masterwork matches appear in the breakdown. A complete match is marked **perfect**.
-- **Every detail**: every specified barrel, magazine, main trait and masterwork must match. Unspecified slots add no requirement. A matching inactive perk produces a swap verdict, not an active god-roll verdict.
+God labels take priority over one-away labels and UNDEF. Otherwise, one-away labels take priority over UNDEF. If both activities are one away, the tile shows **PVE-1 PVP-1**. A missing source recommendation never acts as a wildcard.
 
-The dropdown in the toolbar popup selects your definition. Each item’s explanation identifies its community source. Recommendations are opinions and can change with the sandbox; the extension does not invent build or activity advice beyond the source notes.
+Clicking an item opens DIM’s normal popup. Matching recommended perks receive a **gold circle and check** on their existing icons, including inactive choices. The overlay adds no item card, custom hover card or title action. The optional **Roll Lens** dashboard provides source notes and a five-slot breakdown when you open it.
+
+PvE uses **Aegis**. PvP uses **Finnald / Pride Eternal**. Recommendations reflect those sources; weapon meta tiers and optional Light.gg popularity grades do not establish a god roll.
 
 ## Features
 
 - Simultaneous PvE, PvP and both labels, with optional keeper outlines.
 - A **Roll Lens** button inside DIM opens a searchable inventory overview.
-- Filter god rolls by activity, find perk swaps, and inspect unrated weapons.
-- Clean tile labels only for god rolls and rolls one required slot away. Separate active, selectable and missing perks in the detailed breakdown, plus masterwork matching and source notes.
+- Filter god rolls by activity, find one-away rolls, and inspect undefined coverage.
+- Clean tile labels for 5/5 and 4/5 rolls, with a gray slashed UNDEF when the source cannot establish a five-slot verdict. Gold checks stay inside DIM’s native perk controls.
 - Keyboard-accessible dialog, search, filters and close controls; narrow-screen layout.
 - Bundled public recommendations for an offline first load, plus daily refresh. Failed/empty refreshes preserve cached ratings.
 - Simple toolbar settings with upstream advanced customization, wishlist, armor, explorer and optional Light.gg tools still available.
@@ -63,7 +61,7 @@ Firefox removes temporary add-ons when it restarts. A persistent install require
 2. Click **Load unpacked** and select the extracted **chromium** folder.
 3. Reload DIM.
 
-DIM stable and beta are supported. Winnower compatibility is inherited from upstream. The new dashboard is intended for DIM. This project is independent of Bungie, DIM, Maxeption and the recommendation authors.
+DIM stable and beta are supported. The owned five-slot bridge and native gold checks are intended for DIM. Upstream Winnower tools remain available with Roll Lens disabled. This project is independent of Bungie, DIM, Maxeption and the recommendation authors.
 
 ## Develop
 
@@ -86,9 +84,9 @@ Run `npm run dev` and open `/preview.html` for an interactive synthetic inventor
 
 ## Validation and limits
 
-Unit/DOM tests cover activity separation, swaps, strict matching, fixed/unrated weapons, HTML escaping, filters, search and dialog focus. Built-bundle integration tests check real bundled recommendation parsing, mutation-triggered rescoring, badge deduplication, missing-source isolation and failed-sync cache retention. Package validation checks both manifests and every required ZIP path. Browser QA covers the desktop/narrow layouts and actionable swap details.
+Unit/DOM tests cover coherent five-slot combinations, inactive owned choices, selection invariance, wrong-column rejection, exact masterwork matching, undefined source coverage, native icon checks, HTML escaping and dashboard controls. Built-bundle tests exercise mutation-triggered rescoring and source isolation. Package validation checks both manifests and required ZIP paths.
 
-The Firefox release was also temporarily loaded and tested against a signed-in DIM inventory on October 6, 2026, in Firefox Nightly 157.0a1. Live tile badges, the dashboard, activity filters, item explanations and perk-swap guidance were checked. See [validation](docs/VALIDATION.md) for the scope. The DIM bridge reads React item data and is inherited from upstream; DIM changes can break it. Bundled source data comes from the upstream snapshot; a successful refresh means the cache was retrieved, not that its author has revised every weapon for the latest sandbox.
+See [validation](docs/VALIDATION.md) for release-specific evidence and inventory coverage. The DIM bridge reads React item data; DIM changes can break it. Bundled recommendations come from the upstream snapshot. A successful refresh confirms retrieval, not that every weapon recommendation reflects the latest sandbox.
 
 Custom wishlists hosted at `raw.githubusercontent.com` work with the supplied permissions. Other domains need an explicit host-permission change. [Privacy](PRIVACY.md) explains local data and network use.
 

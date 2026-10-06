@@ -16,10 +16,14 @@ import { outermostElements } from './dom-utils';
 
 import { WEAPON_STAT_HASHES } from './weapon-stats';
 import { masterworkStatName } from './masterwork';
+import { buildOwnedRollData, buildOwnedRollPerks, ownedRollsBySlot, type OwnedRollSocket } from './owned-rolls';
+import { annotateNativePerks } from './native-perk-bridge';
 
 interface PerkInfo {
   name: string;
   icon: string;
+  slot?: 'barrel' | 'mag' | 'perk1' | 'perk2' | 'origin';
+  active?: boolean;
 }
 
 // Global registry of all seen perks, shared via a hidden DOM element
@@ -32,7 +36,7 @@ function sendDiagnosticLog(msg: string) {
 
 // Global cache for weapon instances to store full perk sets (e.g. from popups)
 const instanceCache: Record<string, { perkHashes: number[]; activePerkHashes: number[]; perksDataMap: Record<number, PerkInfo>; equippedMasterwork?: string }> = {};
-const weaponReadCache = new WeakMap<object, { inputs: unknown[]; attributes: [string, string | null][] }>();
+const weaponReadCache = new WeakMap<object, { inputs: unknown[]; attributes: [string, string | null][]; ownedRoll: ReturnType<typeof buildOwnedRollData> }>();
 
 function weaponReadInputs(item: any): unknown[] {
   const mw = item.masterworkInfo;
@@ -41,8 +45,9 @@ function weaponReadInputs(item: any): unknown[] {
   const addPlug = (def: any) => inputs.push(!!def, def?.hash, def?.displayProperties?.name,
     def?.displayProperties?.icon, def?.plug?.plugCategoryIdentifier, def?.itemTypeDisplayName);
   for (const socket of item.sockets?.allSockets || []) {
-    inputs.push(!!socket, socket?.plugOptions?.length);
+    inputs.push(!!socket, socket?.socketIndex, socket?.socketTypeHash, socket?.socketDefinition?.socketTypeHash, socket?.reusablePlugItems?.length, socket?.plugOptions?.length);
     addPlug(socket?.plugged?.plugDef);
+    for (const option of socket?.reusablePlugItems || []) { inputs.push(option?.plugItemHash); addPlug(option.plugDef || option); }
     for (const option of socket?.plugOptions || []) addPlug(option.plugDef);
   }
   return inputs;
@@ -855,6 +860,8 @@ function processElement(el: HTMLElement) {
       setItemAttribute(el, 'data-aegis-perk-hashes', null);
       setItemAttribute(el, 'data-aegis-perks-data', null);
       setItemAttribute(el, 'data-aegis-active-perk-hashes', null);
+      setItemAttribute(el, 'data-aegis-owned-roll', null);
+      setItemAttribute(el, 'data-aegis-roll-slots', null);
       return;
     }
 
@@ -863,6 +870,7 @@ function processElement(el: HTMLElement) {
     const saved = weaponReadCache.get(item);
     if (saved && inputs.length === saved.inputs.length && inputs.every((value, i) => value === saved.inputs[i])) {
       for (const [name, value] of saved.attributes) setItemAttribute(el, name, value);
+      annotateNativePerks(el, saved.ownedRoll);
       return;
     }
 
@@ -873,88 +881,26 @@ function processElement(el: HTMLElement) {
     // Equipped Masterwork stat name (e.g. "Range", "Handling")
     let equippedMasterwork: string = '';
 
-    // Categorized possible perks extracted directly from the React Fiber socket data.
-    // perk1s = column 3 (first trait column), perk2s = column 4 (second trait column)
+    // These arrays deliberately contain only reusable choices owned by this
+    // instance plus its plugged choices. Manifest plugOptions are ignored.
     const possibleBarrels: string[] = [];
     const possibleMags: string[] = [];
     const possiblePerk1s: string[] = [];
     const possiblePerk2s: string[] = [];
     const possibleOrigins: string[] = [];
-    let traitSocketsSeen = 0; // Counts how many trait-type sockets we've processed
-
-    // Read sockets to extract active and optional perks
-    if (item.sockets && item.sockets.allSockets) {
-      for (const socket of item.sockets.allSockets) {
-        if (!socket) continue;
-
-        // Determine the socket category from the reference plug (plugged or first option)
-        const referenceDef = socket.plugged?.plugDef ?? socket.plugOptions?.[0]?.plugDef;
-        let slotCategory = detectPlugCategory(referenceDef);
-
-        // --- Detect equipped Masterwork via socket (Strategy 2 pre-check, handled after loop) ---
-        // We keep a coarse early-detect here for the specific slot only
-
-        // Assign trait sockets to perk1 (column 3) or perk2 (column 4) by order of appearance
-        if (slotCategory === 'trait') {
-          traitSocketsSeen++;
-          slotCategory = traitSocketsSeen === 1 ? 'perk1' : 'perk2';
-        }
-
-        const slotNames: string[] = [];
-
-        // 1. Current plugged perk
-        if (socket.plugged && socket.plugged.plugDef) {
-          const def = socket.plugged.plugDef;
-          if (def.hash) {
-            perkHashes.push(def.hash);
-            activePerkHashes.push(def.hash);
-            perksDataMap[def.hash] = {
-              name: def.displayProperties?.name || 'Unknown Perk',
-              icon: def.displayProperties?.icon || '',
-            };
-            const plugName = def.displayProperties?.name || '';
-            if (plugName && slotCategory && slotCategory !== 'skip' && slotCategory !== 'intrinsic') {
-              slotNames.push(plugName);
-            }
-          }
-        }
-
-        // 2. All selectable plug options (includes all possible barrel, mag, and trait options)
-        if (socket.plugOptions) {
-          for (const opt of socket.plugOptions) {
-            if (opt.plugDef && opt.plugDef.hash) {
-              const def = opt.plugDef;
-              if (!perkHashes.includes(def.hash)) {
-                perkHashes.push(def.hash);
-              }
-              perksDataMap[def.hash] = {
-                name: def.displayProperties?.name || 'Unknown Perk',
-                icon: def.displayProperties?.icon || '',
-              };
-              const plugName = def.displayProperties?.name || '';
-              if (plugName && slotCategory && slotCategory !== 'skip' && slotCategory !== 'intrinsic') {
-                if (!slotNames.includes(plugName)) slotNames.push(plugName);
-              }
-            }
-          }
-        }
-
-        // Assign slot names to the correct category bucket
-        if (slotNames.length > 0) {
-          if (slotCategory === 'barrel') {
-            slotNames.forEach(n => { if (!possibleBarrels.includes(n)) possibleBarrels.push(n); });
-          } else if (slotCategory === 'mag') {
-            slotNames.forEach(n => { if (!possibleMags.includes(n)) possibleMags.push(n); });
-          } else if (slotCategory === 'perk1') {
-            slotNames.forEach(n => { if (!possiblePerk1s.includes(n)) possiblePerk1s.push(n); });
-          } else if (slotCategory === 'perk2') {
-            slotNames.forEach(n => { if (!possiblePerk2s.includes(n)) possiblePerk2s.push(n); });
-          } else if (slotCategory === 'origin') {
-            slotNames.forEach(n => { if (!possibleOrigins.includes(n)) possibleOrigins.push(n); });
-          }
-        }
-      }
+    const ownedSockets = (item.sockets?.allSockets || []) as OwnedRollSocket[];
+    const ownedPerks = buildOwnedRollPerks(ownedSockets);
+    const bySlot = ownedRollsBySlot(ownedPerks);
+    for (const perk of ownedPerks) {
+      perkHashes.push(perk.hash);
+      if (perk.active) activePerkHashes.push(perk.hash);
+      if (perk.slot !== 'masterwork') perksDataMap[perk.hash] = { name: perk.name || 'Unknown Perk', icon: perk.icon || '', slot: perk.slot, active: perk.active };
     }
+    for (const perk of bySlot.barrel) if (perk.name) possibleBarrels.push(perk.name);
+    for (const perk of bySlot.mag) if (perk.name) possibleMags.push(perk.name);
+    for (const perk of bySlot.perk1) if (perk.name) possiblePerk1s.push(perk.name);
+    for (const perk of bySlot.perk2) if (perk.name) possiblePerk2s.push(perk.name);
+    for (const perk of bySlot.origin) if (perk.name) possibleOrigins.push(perk.name);
 
     // Prefer the primary stat hash; DIM's display names depend on its language.
     if (item.masterworkInfo) {
@@ -1028,30 +974,16 @@ function processElement(el: HTMLElement) {
     // Instance ID cache logic (handles async loading and popup-to-grid sync)
     const instanceId = item.id;
     if (instanceId) {
-      const cached = instanceCache[instanceId];
-      if (activePerkHashes.length === 0 && cached) {
-        activePerkHashes = [...cached.activePerkHashes];
-      }
-      // If we scanned a complete perk list (>3 perks indicates full perks loaded)
-      if (perkHashes.length > 3) {
+      // Cache a complete canonical read for this instance.  Never union a
+      // stale cache with a fresh DOM read: that used to turn manifest/socket
+      // leftovers into falsely owned perks.
+      if (perkHashes.length > 0) {
         instanceCache[instanceId] = {
           perkHashes: [...perkHashes],
           activePerkHashes: [...activePerkHashes],
           perksDataMap: { ...perksDataMap },
           equippedMasterwork,
         };
-      } else if (cached) {
-        // If current element lacks perks but we have it in cache, populate it!
-        for (const hash of cached.perkHashes) {
-          if (!perkHashes.includes(hash)) {
-            perkHashes.push(hash);
-          }
-        }
-        Object.assign(perksDataMap, cached.perksDataMap);
-        // Restore MW from cache if we didn't detect one directly
-        if (!equippedMasterwork && cached.equippedMasterwork) {
-          equippedMasterwork = cached.equippedMasterwork;
-        }
       }
     }
 
@@ -1088,10 +1020,16 @@ function processElement(el: HTMLElement) {
     writeAttribute('data-aegis-perk-hashes', newPerks);
     writeAttribute('data-aegis-perks-data', JSON.stringify(perksDataMap));
     writeAttribute('data-aegis-active-perk-hashes', activePerkHashes.join(','));
+    const primaryMasterworkHash = item.masterworkInfo?.stats?.find((stat: any) => stat?.isPrimary)?.hash || 0;
+    const ownedRoll = buildOwnedRollData(ownedSockets, equippedMasterwork, primaryMasterworkHash);
+    const ownedRollData = JSON.stringify(ownedRoll);
+    writeAttribute('data-aegis-owned-roll', ownedRollData);
+    writeAttribute('data-aegis-roll-slots', ownedRollData);
+    annotateNativePerks(el, ownedRoll);
     writeAttribute('data-aegis-instance-id', instanceId ? String(instanceId) : null);
     writeAttribute('data-aegis-item-type', null);
     inputs[0] = instanceCache[item.id];
-    weaponReadCache.set(item, { inputs, attributes });
+    weaponReadCache.set(item, { inputs, attributes, ownedRoll });
 
   } catch (e) {
     console.debug('Aegis Overlay: Element scan failed', e);

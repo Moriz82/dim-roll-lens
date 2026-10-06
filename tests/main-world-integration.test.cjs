@@ -1,0 +1,25 @@
+const assert=require('node:assert/strict');const fs=require('node:fs');const {JSDOM}=require('jsdom');
+const {load,sheet}=require('./lens-helpers.cjs');
+const dom=new JSDOM('<body><div class="item" id="tile"></div></body>',{url:'https://app.destinyitemmanager.com/demo/d2/inventory',runScripts:'outside-only',pretendToBeVisual:true});
+const w=dom.window;const observers=[];const Base=w.MutationObserver;w.MutationObserver=class extends Base {constructor(fn){super(fn);observers.push(this);}};
+w.indexedDB={databases:async()=>[],open:()=>{const request={result:{objectStoreNames:[],close:()=>{}}};queueMicrotask(()=>request.onsuccess?.());return request;}};w.console={...console,debug:()=>{},log:()=>{},warn:()=>{}};
+const names=['Barrel','Magazine','Trait A','Trait B','Origin'];const categories=['barrels','magazines','frames','frames','origins'];
+const item={id:'synthetic-cache-case',hash:1,name:'Test weapon',itemCategoryHashes:[1],sockets:{allSockets:names.map((name,index)=>{const plug={plugDef:{hash:index+1,displayProperties:{name,icon:''},plug:{plugCategoryIdentifier:categories[index]}}};return {socketIndex:index+1, socketDefinition:{socketTypeHash:index===2?1215804697:index===3?1215804696:0},plugged:plug,reusablePlugItems:[{plugItemHash:index+1}],plugOptions:[plug]};})},masterworkInfo:{stats:[{hash:1240592695,name:'Range',isPrimary:true}]}};
+const tile=w.document.getElementById('tile');tile.__reactFiber$test={memoizedProps:{item}};
+const shutdown=()=>{observers.forEach(o=>o.disconnect());dom.window.close();};
+w.eval(fs.readFileSync('dist/main-world-content.js','utf8'));
+(async()=>{
+ await new Promise(r=>setTimeout(r,150));assert.ok(tile.dataset.aegisRollSlots,'MAIN bundle extracts canonical tile slots');
+ const popup=w.document.createElement('div');popup.className='item-popup';popup.__reactFiber$test={memoizedProps:{item}};
+ popup.innerHTML='<h1>Native title</h1><div id="native-barrel"><svg><image href="barrel.png" /></svg></div><div id="native-trait"><svg><image href="trait.png" /></svg></div>';
+ popup.querySelector('#native-barrel').__reactFiber$test={memoizedProps:{plug:item.sockets.allSockets[0].plugged,socketInfo:item.sockets.allSockets[0]}};
+ popup.querySelector('#native-trait').__reactFiber$test={memoizedProps:{plug:item.sockets.allSockets[2].plugged,socketInfo:item.sockets.allSockets[2]}};
+ w.document.body.append(popup);await new Promise(r=>setTimeout(r,180));
+ assert.equal(popup.querySelector('#native-barrel').dataset.rlPlugSlot,'barrel','A cached tile item still annotates a freshly mounted popup');
+ assert.equal(popup.querySelector('#native-trait').dataset.rlPlugSlot,'perk1');
+ global.document=w.document;global.HTMLElement=w.HTMLElement;
+ const {applyLens,configureLens}=load('roll-lens-ui');configureLens({enabled:true});
+ applyLens(popup,{name:item.name,ownedRoll:JSON.parse(popup.dataset.aegisRollSlots),sheetWeaponPvE:sheet,sheetWeaponPvP:sheet,perksMap:{},result:{grade:null,notes:'',matchedPerks:[],missingPerks:[],wishlistPerks:[],matchPercentage:0}});
+ assert.equal(popup.querySelectorAll('.rl-perk-check').length,2);assert.equal(popup.querySelector('.rl-item-card'),null);
+ shutdown();console.log('Built MAIN integration passed: cached tile-to-popup reuse publishes native identities and gold checks.');
+})().catch(error=>{shutdown();console.error(error);process.exitCode=1;});

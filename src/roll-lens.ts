@@ -1,122 +1,84 @@
-import type { AegisSheetWeapon, SheetPerksGroup, TooltipPerk, WeaponEvaluationPayload } from './types';
-import { masterworkMatches } from './masterwork';
+import type { AegisSheetWeapon, OwnedRollData, TooltipPerk, WeaponEvaluationPayload } from './types';
+import { normalizeMasterwork } from './masterwork';
 
+// Retain the setting type for stored preferences; every verdict now requires 5/5.
 export type LensRule = 'traits' | 'complete';
 export type LensState = 'god' | 'swap' | 'good' | 'partial' | 'unknown' | 'fixed';
 export type LensUsage = 'pve' | 'pvp' | 'both' | 'none';
+export type SourceResolution = 'resolved' | 'incomplete' | 'missing' | 'ambiguous';
+type Slot = 'barrel' | 'mag' | 'perk1' | 'perk2' | 'masterwork';
+export interface NativeRecommended { hash: number; slot: Slot }
 export interface LensSlot {
-  label: string;
-  type: TooltipPerk['type'] | 'masterwork';
+  label: string; type: TooltipPerk['type'] | 'masterwork';
   status: 'active' | 'selectable' | 'missing' | 'unspecified';
-  recommendations: string[];
-  selected?: string;
+  recommendations: string[]; selected?: string;
 }
 export interface ActivityVerdict {
-  activity: 'pve' | 'pvp';
-  state: LensState;
-  label: string;
-  source: string;
-  sourceUrl: string;
-  tier: string;
-  notes: string;
-  slots: LensSlot[];
-  activeTraits: number;
-  ownedTraits: number;
-  activeMatches: number;
-  requiredCount: number;
-  distance: number | null;
-  perfect: boolean;
-  swaps: string[];
+  activity: 'pve' | 'pvp'; state: LensState; label: string; source: string; sourceUrl: string;
+  tier: string; notes: string; slots: LensSlot[]; activeTraits: number; ownedTraits: number;
+  activeMatches: number; matchedCount: number | null; ownedMatches: number; requiredCount: number;
+  distance: number | null; perfect: boolean; swaps: string[]; nativeRecommended: NativeRecommended[];
+  sourceResolution: SourceResolution;
 }
 export interface LensVerdict {
-  pve: ActivityVerdict;
-  pvp: ActivityVerdict;
-  usage: LensUsage;
-  potentialUsage: LensUsage;
-  nearUsage: LensUsage;
-  label: string;
-  badge: string;
-  state: LensState;
+  pve: ActivityVerdict; pvp: ActivityVerdict; usage: LensUsage; potentialUsage: LensUsage;
+  nearUsage: LensUsage; label: string; badge: string; state: LensState; sourceResolution: SourceResolution;
 }
-
-const labels: Record<LensState, string> = {
-  god: 'God roll', swap: 'God roll after swap', good: 'Great traits',
-  partial: 'Partial match', unknown: 'Not rated', fixed: 'Fixed roll',
-};
-const fields = [
-  ['barrel', 'Barrel', 'barrel'], ['mag', 'Magazine', 'mag'],
-  ['perk1', 'Trait 1', 'perk1'], ['perk2', 'Trait 2', 'perk2'],
-] as const;
-const usageFor = (e: boolean, p: boolean): LensUsage => e && p ? 'both' : e ? 'pve' : p ? 'pvp' : 'none';
-const activityName = (usage: LensUsage) => usage === 'both' ? 'PvE + PvP' : usage === 'pve' ? 'PvE' : 'PvP';
-
-/** Verdicts are based on socket matches, never on a meta tier or community popularity grade. */
-export function activityVerdict(
-  activity: 'pve' | 'pvp', sheet?: AegisSheetWeapon | null,
-  perks?: SheetPerksGroup | null, masterwork = '', rule: LensRule = 'traits',
-): ActivityVerdict {
-  const verdict: ActivityVerdict = {
-    activity, state: 'unknown', label: labels.unknown,
-    source: activity === 'pve' ? 'Aegis' : 'Finnald',
-    sourceUrl: `https://docs.google.com/spreadsheets/d/${activity === 'pve' ? '1JM-0SlxVDAi-C6rGVlLxa-J1WGewEeL8Qvq4htWZHhY' : '1TVgtTRWNGEPi6OMlTLxXFSKUTi_ycwykhwuw8EW_jJ0'}/edit`,
-    tier: sheet?.tier || '', notes: sheet?.notes || '', slots: [],
-    activeTraits: 0, ownedTraits: 0, activeMatches: 0, requiredCount: 0, distance: null, perfect: false, swaps: [],
-  };
-  if (!sheet) return verdict;
-  if (sheet.exoticViability || sheet.source === 'Exotic') {
-    verdict.state = 'fixed'; verdict.label = labels.fixed; return verdict;
-  }
-  if (!perks) return verdict;
-  const all = perks.all || [...perks.matched, ...perks.missing];
-  for (const [type, label, field] of fields) {
-    const recommendation = sheet[field]?.trim();
-    const specified = !!recommendation && !/^(?:-|—|n\/?a|none|any)$/i.test(recommendation);
-    const options = all.filter(p => p.type === type);
-    const active = options.find(p => p.status === 'active');
-    const selectable = options.find(p => p.status === 'selectable');
-    verdict.slots.push({
-      type, label, status: !specified ? 'unspecified' : active ? 'active' : selectable ? 'selectable' : 'missing',
-      recommendations: options.length ? [...new Set(options.map(p => p.name))] : specified ? recommendation.split(/[\n/]+/).map(s => s.trim()).filter(Boolean) : [],
-      selected: active?.name || selectable?.name,
-    });
-  }
-  const mw = sheet.mw?.trim() || '';
-  const masterworks = /^(?:-|—|n\/?a|none|any)$/i.test(mw) ? [] : mw.split(/[\n/,]+/).map(s => s.trim()).filter(Boolean);
-  verdict.slots.push({ type: 'masterwork', label: 'Masterwork',
-    status: !masterworks.length ? 'unspecified' : masterworkMatches(masterworks, masterwork) ? 'active' : 'missing',
-    recommendations: masterworks, selected: masterwork || undefined,
-  });
-  const traits = verdict.slots.filter(s => s.type === 'perk1' || s.type === 'perk2');
-  verdict.activeTraits = traits.filter(s => s.status === 'active').length;
-  verdict.ownedTraits = traits.filter(s => s.status === 'active' || s.status === 'selectable').length;
-  const required = verdict.slots.filter(s => s.status !== 'unspecified');
-  verdict.requiredCount = required.length;
-  verdict.activeMatches = required.filter(s => s.status === 'active').length;
-  // Missing recommendations and incomplete bridge data cannot establish a god roll.
-  if (traits.some(s => s.status === 'unspecified') || !all.length) return verdict;
-  verdict.perfect = required.every(s => s.status === 'active');
-  const target = rule === 'complete' ? required : traits;
-  verdict.distance = target.filter(s => s.status !== 'active').length;
-  const activeGod = target.every(s => s.status === 'active');
-  const ownedGod = target.every(s => s.status === 'active' || s.status === 'selectable');
-  verdict.state = activeGod ? 'god' : ownedGod ? 'swap' : verdict.ownedTraits === 2 ? 'good' : 'partial';
-  verdict.label = labels[verdict.state];
-  verdict.swaps = target.filter(s => s.status === 'selectable').map(s => s.selected!).filter(Boolean);
-  return verdict;
+const fields = [ ['barrel','Barrel','barrel'], ['mag','Magazine','mag'], ['perk1','Trait 1','perk1'], ['perk2','Trait 2','perk2'], ['masterwork','Masterwork','mw'] ] as const;
+const usageFor = (e: boolean,p: boolean): LensUsage => e && p ? 'both' : e ? 'pve' : p ? 'pvp' : 'none';
+const activityName = (u: LensUsage) => u === 'both' ? 'PvE + PvP' : u === 'pve' ? 'PvE' : 'PvP';
+export const normalizeRollPerk = (value: string): string => value.toLowerCase().replace(/^enhanced\s+/, '').replace(/\s*\(enhanced\)\s*$/, '').replace(/\s+enhanced\s*$/, '').replace(/[^a-z0-9]/g, '');
+const normalizeMW = (value: string) => normalizeMasterwork(value.replace(/\btier\s*\d+\s*:?\s*/ig, '')).replace(/[^a-z0-9]/g, '');
+const choices = (raw?: string): string[] => !raw?.trim() || /^(?:n\/?a|none|any|undefined|undef|unknown|tbd|see notes)$/i.test(raw.trim()) ? [] : raw.split(/[\n/,]+/).map(s=>s.trim()).filter(s => !!normalizeRollPerk(s) && !/^(?:n\/?a|none|any|undefined|undef|unknown|tbd|see notes)$/i.test(s));
+function empty(activity: 'pve'|'pvp', resolution: SourceResolution = 'missing'): ActivityVerdict {
+  return { activity, state:'unknown', label:'Undefined five-slot roll', source:activity === 'pve' ? 'Aegis' : 'Finnald',
+    sourceUrl:`https://docs.google.com/spreadsheets/d/${activity === 'pve' ? '1JM-0SlxVDAi-C6rGVlLxa-J1WGewEeL8Qvq4htWZHhY' : '1TVgtTRWNGEPi6OMlTLxXFSKUTi_ycwykhwuw8EW_jJ0'}/edit`,
+    tier:'',notes:'',slots:[],activeTraits:0,ownedTraits:0,activeMatches:0,matchedCount:null,ownedMatches:0,requiredCount:5,distance:null,perfect:false,swaps:[],nativeRecommended:[],sourceResolution:resolution };
 }
-
-export function evaluateLens(data: WeaponEvaluationPayload, rule: LensRule = 'traits'): LensVerdict {
-  const pve = activityVerdict('pve', data.sheetWeaponPvE, data.sheetPerksPvE, data.equippedMasterwork || '', rule);
-  const pvp = activityVerdict('pvp', data.sheetWeaponPvP, data.sheetPerksPvP, data.equippedMasterwork || '', rule);
-  const usage = usageFor(pve.state === 'god', pvp.state === 'god');
-  const potentialUsage = usageFor(['god', 'swap'].includes(pve.state), ['god', 'swap'].includes(pvp.state));
-  const nearUsage = usageFor(pve.distance === 1, pvp.distance === 1);
-  const state: LensState = usage !== 'none' ? 'god' : potentialUsage !== 'none' ? 'swap' :
-    [pve, pvp].some(v => v.state === 'good') ? 'good' : [pve, pvp].some(v => v.state === 'partial') ? 'partial' :
-    [pve, pvp].some(v => v.state === 'fixed') ? 'fixed' : 'unknown';
-  // Keep tiles quiet: exact matches first, then only activities one required slot away.
-  const badge = usage !== 'none' ? usage.toUpperCase() :
-    [pve.distance === 1 ? 'PVE-1' : '', pvp.distance === 1 ? 'PVP-1' : ''].filter(Boolean).join(' ');
-  const label = usage !== 'none' ? `${activityName(usage)} god roll` : potentialUsage !== 'none' ? `${activityName(potentialUsage)} god roll after perk swap` : labels[state];
-  return { pve, pvp, usage, potentialUsage, nearUsage, state, label, badge };
+/** Evaluate one whole recommendation against exact owned socket columns. */
+export function activityVerdict(activity: 'pve'|'pvp', sheet?: AegisSheetWeapon|null, owned?: OwnedRollData|null): ActivityVerdict {
+  const v=empty(activity,sheet?'incomplete':'missing');
+  if (!sheet) return v;
+  v.tier=sheet.tier||''; v.notes=sheet.notes||'';
+  let complete=true;
+  for (const [slot,label,field] of fields) {
+    const recommendations=choices(sheet[field]);
+    const socket=owned?.slots?.[slot];
+    const normalize=slot === 'masterwork' ? normalizeMW : normalizeRollPerk;
+    const matches=(socket?.plugs||[]).filter(p=>!!normalize(p.name) && recommendations.some(r=>normalize(r)===normalize(p.name))).sort((a,b)=>a.hash-b.hash);
+    const selected=matches[0];
+    const status=!recommendations.length ? 'unspecified' : selected ? selected.active ? 'active' : 'selectable' : 'missing';
+    v.slots.push({type:slot,label,status,recommendations,selected:selected?.name});
+    if (!recommendations.length || !socket?.complete || !socket.plugs.length || socket.plugs.some(p=>!p.name.trim())) complete=false;
+    if (matches.length) {
+      v.ownedMatches++;
+      if (slot === 'perk1' || slot === 'perk2') v.ownedTraits++;
+      if (matches.some(p=>p.active)) { v.activeMatches++; if(slot==='perk1'||slot==='perk2')v.activeTraits++; }
+      for (const p of matches) if(p.hash>0) v.nativeRecommended.push({slot,hash:p.hash});
+    }
+  }
+  if (!complete) return v;
+  v.sourceResolution='resolved'; v.matchedCount=v.ownedMatches; v.distance=5-v.ownedMatches; v.perfect=v.distance===0;
+  v.state=v.perfect?'god':'partial'; v.label=v.perfect?'God roll · 5/5 owned':v.distance===1?'One slot away · 4/5 owned':`${v.ownedMatches}/5 slots owned`;
+  return v;
+}
+function bestActivity(activity:'pve'|'pvp',data:WeaponEvaluationPayload):ActivityVerdict {
+  const resolution=activity==='pve'?data.sourceResolutionPvE:data.sourceResolutionPvP;
+  if(resolution && resolution!=='resolved') return empty(activity,resolution);
+  const supplied=activity==='pve'?data.sheetWeaponPvECandidates:data.sheetWeaponPvPCandidates;
+  const fallback=activity==='pve'?data.sheetWeaponPvE:data.sheetWeaponPvP;
+  // An explicitly empty candidate list means unresolved; do not borrow legacy selection.
+  const rows=supplied!==undefined ? supplied : fallback?[fallback]:[];
+  if(!rows.length)return empty(activity);
+  return rows.map(row=>activityVerdict(activity,row,data.ownedRoll)).sort((a,b)=>Number(b.sourceResolution==='resolved')-Number(a.sourceResolution==='resolved') || b.ownedMatches-a.ownedMatches)[0];
+}
+export function evaluateLens(data:WeaponEvaluationPayload,_rule:LensRule='complete'):LensVerdict {
+  const pve=bestActivity('pve',data),pvp=bestActivity('pvp',data);
+  const usage=usageFor(pve.perfect,pvp.perfect),nearUsage=usageFor(pve.distance===1,pvp.distance===1);
+  const undefinedRoll=pve.distance===null||pvp.distance===null;
+  const badge=usage!=='none'?usage.toUpperCase():nearUsage!=='none'?[pve.distance===1?'PVE-1':'',pvp.distance===1?'PVP-1':''].filter(Boolean).join(' '):undefinedRoll?'UNDEF':'';
+  const sourceResolution:SourceResolution=usage!=='none'||nearUsage!=='none'||!undefinedRoll?'resolved':[pve,pvp].some(v=>v.sourceResolution==='ambiguous')?'ambiguous':[pve,pvp].some(v=>v.sourceResolution==='incomplete')?'incomplete':'missing';
+  const state:LensState=usage!=='none'?'god':badge==='UNDEF'?'unknown':'partial';
+  const label=usage!=='none'?`${activityName(usage)} god roll`:nearUsage!=='none'?`${activityName(nearUsage)} one slot away`:badge==='UNDEF'?'Undefined five-slot roll':'Partial match';
+  return {pve,pvp,usage,potentialUsage:usage,nearUsage,badge,state,label,sourceResolution};
 }

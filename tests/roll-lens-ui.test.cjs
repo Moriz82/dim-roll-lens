@@ -12,7 +12,7 @@ const badge=tile.querySelector('.rl-badge'); applyLens(tile,data); assert.equal(
 assert.equal(tile.querySelectorAll('.rl-badge').length,1);
 const near=payload(group(['active','active','missing','active'])); applyLens(tile,near);
 assert.equal(tile.querySelector('.rl-badge').textContent,'PVE-1'); assert.equal(tile.dataset.rlGlow,'off');
-const quiet=payload(group(['active','active','missing','missing'])); applyLens(tile,quiet);
+const quiet=payload(group(['active','active','missing','missing']),group(['active','active','missing','missing'])); applyLens(tile,quiet);
 assert.equal(tile.querySelector('.rl-badge'),null); assert.equal(tile.dataset.rlState,'partial');
 const observer=new dom.window.MutationObserver(()=>{}); observer.observe(tile,{attributes:true,childList:true,subtree:true});
 applyLens(tile,quiet); assert.equal(observer.takeRecords().length,0,'An unlabeled tile must settle without repeat DOM writes'); observer.disconnect();
@@ -21,9 +21,18 @@ configureLens({enabled:false}); applyLens(tile,data); assert.equal(tile.querySel
 configureLens({enabled:true}); data.name='<img src=x onerror=alert(1)>'; applyLens(tile,data);
 const { evaluateLens }=load('roll-lens'); const card=lensCardHtml(data.name,evaluateLens(data));
 assert.ok(card.includes('&lt;img')); assert.ok(!card.includes('<img src=x'));
-const popup=document.createElement('div'); popup.className='item-popup'; popup.innerHTML='<button><h1>Weapon</h1></button>'; document.body.append(popup);
-applyLens(popup,data); assert.equal(popup.querySelectorAll('.rl-item-card').length,1); assert.equal(popup.querySelector('.rl-item-card img'),null);
-applyLens(popup,data); assert.equal(popup.querySelectorAll('.rl-item-card').length,1);
+const popup=document.createElement('div'); popup.className='item-popup'; popup.innerHTML='<button><h1>Weapon</h1></button><div id=barrel data-rl-plug-hash=1 data-rl-plug-slot=barrel><svg><image href=barrel.png /></svg></div><div id=trait data-rl-plug-hash=3 data-rl-plug-slot=perk1><svg><image href=trait.png /></svg></div><div id=wrong data-rl-plug-hash=3 data-rl-plug-slot=barrel><svg><image href=wrong.png /></svg></div>'; document.body.append(popup);
+const nativeTitle=popup.querySelector('h1'); let clicks=0; nativeTitle.addEventListener('click',()=>clicks++);
+applyLens(popup,data); assert.equal(popup.querySelector('.rl-item-card'),null); assert.equal(popup.querySelectorAll('.rl-perk-check').length,2);
+assert.ok(popup.querySelector('#barrel .rl-perk-check')); assert.ok(popup.querySelector('#trait .rl-perk-check')); assert.equal(popup.querySelector('#wrong .rl-perk-check'),null);
+assert.equal(popup.querySelector('#trait .rl-perk-check').getAttribute('aria-label'),'Recommended for PvE and PvP');
+applyLens(popup,data); assert.equal(popup.querySelectorAll('.rl-perk-check').length,2); nativeTitle.click(); assert.equal(clicks,1); assert.equal(popup.querySelector('h1'),nativeTitle);
+configureLens({enabled:false}); applyLens(popup,data); assert.equal(popup.querySelectorAll('.rl-perk-check').length,0); assert.equal(popup.querySelectorAll('.rl-recommended-perk').length,0);
+configureLens({enabled:true}); applyLens(popup,data);
+popup.querySelector('#barrel').dataset.rlPlugHash='999'; applyLens(popup,data); assert.equal(popup.querySelector('#barrel .rl-perk-check'),null,'Stale native checks clear when DIM changes an icon');
+const undef=payload(); undef.sheetWeaponPvE={...undef.sheetWeaponPvE,mw:''}; undef.sheetWeaponPvECandidates=[undef.sheetWeaponPvE]; applyLens(tile,undef); assert.equal(tile.querySelector('.rl-badge').textContent,'UNDEF'); assert.equal(tile.querySelector('.rl-badge').dataset.state,'undefined');
+applyLens(tile,data);
+for(const type of ['armor','other']) { const excluded=document.createElement('div'); excluded.dataset.aegisItemType=type; applyLens(excluded,data); assert.equal(excluded.querySelector('.rl-badge'),null); assert.equal(excluded.dataset.rlState,undefined); }
 const map=new WeakMap([[tile,data]]); initLensDashboard(el=>map.get(el)); initLensDashboard(el=>map.get(el)); assert.equal(document.querySelectorAll('#rl-launcher').length,1);
 const panel=document.getElementById('rl-dashboard'); panel.showModal=()=>{panel.open=true}; panel.close=()=>{panel.open=false; panel.dispatchEvent(new dom.window.Event('close'))};
 document.getElementById('rl-launcher').click(); assert.equal(panel.open,true); assert.equal(document.activeElement.className,'rl-search');

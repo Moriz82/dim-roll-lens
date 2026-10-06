@@ -289,6 +289,7 @@ async function fetchSpreadsheetDatabase(sheetId: string, tabs: string[]): Promis
           rank: getVal(row, ['Rank', 'WEAPON #', '#']),
           tier: getVal(row, ['Tier']),
           versionTag: versionTag || undefined,
+          sourceRowId: `${tab}:${r}`,
           mw: getVal(row, ['MW', 'PERKS MW']),
           stun: stunVal || undefined,
           exoticViability: hasViability ? {
@@ -311,9 +312,7 @@ async function fetchSpreadsheetDatabase(sheetId: string, tabs: string[]): Promis
         if (!variants[baseNormalized]) {
           variants[baseNormalized] = [];
         }
-        if (!variants[baseNormalized].some((v: any) => v.name === weaponName)) {
-          variants[baseNormalized].push(weaponData);
-        }
+        variants[baseNormalized].push(weaponData);
 
         if (!weapons[baseNormalized]) {
           weapons[baseNormalized] = weaponData;

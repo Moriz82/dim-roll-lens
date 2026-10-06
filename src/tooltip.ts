@@ -7,7 +7,7 @@ import { safeSetInnerHTML } from './dom-utils';
 import { masterworkMatches } from './masterwork';
 import { measurePerkCardWidth } from './card-width';
 import type { WeaponEvaluationPayload } from './types';
-import { isLensEnabled, renderLensCard } from './roll-lens-ui';
+import { isLensEnabled } from './roll-lens-ui';
 
 
 
@@ -450,10 +450,8 @@ export function showTooltip(
   }
 ) {
   const tooltip = initTooltip();
-  if (isLensEnabled() && !sheetArmor && options?.lensData) {
-    tooltip.classList.add('rl-hover-card');
-    safeSetInnerHTML(tooltip, renderLensCard(options.lensData));
-    positionTooltip(target, tooltip); tooltip.classList.remove('hidden');
+  if (isLensEnabled()) {
+    hideTooltip();
     return;
   }
   tooltip.classList.remove('rl-hover-card');
