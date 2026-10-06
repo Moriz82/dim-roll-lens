@@ -1,5 +1,6 @@
 import type { WeaponEvaluationPayload } from './types';
 import { evaluateLens, type ActivityVerdict, type LensRule, type LensVerdict } from './roll-lens';
+import { clearRollInspector, updateRollInspector } from './roll-inspector';
 
 const escape = (text: string) => text.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
 export interface LensSettings { enabled: boolean; glow: boolean; rule: LensRule }
@@ -9,6 +10,7 @@ let status: { lastSync?: number; syncing?: boolean; error?: string } = {};
 export function configureLens(next: Partial<LensSettings>) {
   settings = { ...settings, ...next, rule: 'complete' };
   document.documentElement.dataset.rollLens = settings.enabled ? 'on' : 'off';
+  if (!settings.enabled) clearRollInspector();
 }
 export function updateLensStatus(next: typeof status) { status = next; }
 export function isLensEnabled(): boolean { return settings.enabled; }
@@ -54,11 +56,12 @@ export function applyLens(el: HTMLElement, data: WeaponEvaluationPayload): void 
   const popup = el.matches('.item-popup, [class*="item-popup"], [class*="ItemPopup"]') ? el : el.closest<HTMLElement>('.item-popup, [class*="item-popup"], [class*="ItemPopup"]');
   if (!settings.enabled || data.sheetArmor || ['armor', 'other'].includes(el.dataset.aegisItemType || '')) {
     el.querySelectorAll('.rl-badge, .rl-item-card').forEach(node => node.remove());
-    if (popup) markNativePerks(popup);
+    if (popup) { markNativePerks(popup); clearRollInspector(popup); }
     delete el.dataset.rlState; delete el.dataset.rlUsage; delete el.dataset.rlPotential; delete el.dataset.rlGlow;
     previous.delete(el); return;
   }
   const verdict = evaluateLens(data);
+  if (popup) updateRollInspector(popup, data, verdict);
   const nativeIcons = popup ? [...popup.querySelectorAll<HTMLElement>('[data-rl-plug-hash][data-rl-plug-slot]')].map(i => [i.dataset.rlPlugHash, i.dataset.rlPlugSlot]) : [];
   const signature = JSON.stringify([data.name, verdict, settings, !!popup, nativeIcons]);
   if (previous.get(el) === signature && (popup ? !popup.querySelector('.rl-item-card') : !!el.querySelector('.rl-badge') === !!verdict.badge)) return;

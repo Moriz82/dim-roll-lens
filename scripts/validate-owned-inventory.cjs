@@ -4,7 +4,10 @@ const assert = require('node:assert/strict');
 const { load } = require('../tests/lens-helpers.cjs');
 const { buildOwnedRollData, buildOwnedRollPerks } = load('owned-rolls');
 const { resolveRollSourceCandidates } = load('roll-lens-source');
-const { evaluateLens } = load('roll-lens');
+const { evaluateLens, activityRecommendations } = load('roll-lens');
+const { rollInspectorHtml } = load('roll-inspector');
+const { JSDOM } = require('jsdom');
+const guideDocument = new JSDOM('<!doctype html><body></body>').window.document;
 const file = process.argv[2];
 if (!file) throw new Error('Usage: node scripts/validate-owned-inventory.cjs <private-inventory.json>');
 const snapshot = JSON.parse(fs.readFileSync(file,'utf8'));
@@ -24,7 +27,7 @@ function oracle(source, owned) {
   });
   return scores.length ? Math.max(...scores) : null;
 }
-const counts = {items:0,weapons:0,fixedWeapons:0,armor:0,other:0,stores:snapshot.stores.length,labels:{},selectionInvariant:0,ownedHashChecks:0};
+const counts = {items:0,weapons:0,fixedWeapons:0,armor:0,other:0,stores:snapshot.stores.length,labels:{},selectionInvariant:0,ownedHashChecks:0,inspectorCases:0};
 assert.equal(snapshot.stores.some(s=>s.hadErrors),false,'DIM reported an inventory store error');
 for (const store of snapshot.stores) {
   assert.equal(store.count,store.items.length,'Snapshot store coverage mismatch');
@@ -44,6 +47,8 @@ for (const store of snapshot.stores) {
     const sources=dbs.map(db=>resolveRollSourceCandidates(db,item.name,item.hash,perks,manifest.get(item.hash)));
     const payload={name:item.name,ownedRoll,perksMap:{},equippedMasterwork:mw,result:{grade:null,notes:'',matchedPerks:[],missingPerks:[],wishlistPerks:[],matchPercentage:0},sheetWeaponPvECandidates:sources[0].rows,sheetWeaponPvPCandidates:sources[1].rows,sourceResolutionPvE:sources[0].resolution,sourceResolutionPvP:sources[1].resolution};
     const verdict=evaluateLens(payload);
+    const guide=guideDocument.createElement('div');guide.innerHTML=rollInspectorHtml(payload,verdict);
+    assert.equal(guide.querySelectorAll('.rl-inspector-activity').length,2,`Weapon case ${counts.weapons}: guide omits an activity`);
     const traits=sockets.filter(s=>[1215804697,1215804696].includes(s.socketDefinition?.socketTypeHash));
     const fixed=traits.length>0 && traits.every(s=>s.hasRandomizedPlugItems===false);
     if(fixed)counts.fixedWeapons++;
@@ -53,12 +58,21 @@ for (const store of snapshot.stores) {
     for (const [index,activity] of ['pve','pvp'].entries()) {
       assert.equal(verdict[activity].matchedCount,expected[index],`Weapon case ${counts.weapons}: ${activity} count disagrees`);
       for (const mark of verdict[activity].nativeRecommended) assert.ok(ownedRoll.slots[mark.slot].plugs.some(p=>p.hash===mark.hash),`Weapon case ${counts.weapons}: native check is not owned in its slot`);
+      const combinations=activityRecommendations(activity,payload);
+      if(combinations.length) assert.equal(combinations[0].matchedCount,verdict[activity].matchedCount,`Weapon case ${counts.weapons}: guide and badge disagree`);
+      const section=guide.querySelector(`.rl-inspector-${activity}.rl-inspector-activity`);
+      for(const slot of fields) {
+        const actuals=section.querySelectorAll(`[data-slot="${slot}"] .rl-inspector-actual`);
+        for(const actual of actuals)for(const plug of ownedRoll.slots[slot].plugs) assert.ok(actual.textContent.includes(plug.name.trim() || 'Unnamed perk'),`Weapon case ${counts.weapons}: guide hides an owned choice`);
+      }
     }
     const changed=structuredClone(ownedRoll);
     for (const slot of fields) for (const plug of changed.slots[slot].plugs) plug.active=!plug.active;
     const flipped=evaluateLens({...payload,ownedRoll:changed});
     assert.deepEqual([flipped.badge,flipped.pve.matchedCount,flipped.pvp.matchedCount,flipped.pve.nativeRecommended,flipped.pvp.nativeRecommended],[verdict.badge,verdict.pve.matchedCount,verdict.pvp.matchedCount,verdict.pve.nativeRecommended,verdict.pvp.nativeRecommended],`Weapon case ${counts.weapons}: selection affected verdict or gold checks`);
     counts.selectionInvariant++;
+    assert.equal(rollInspectorHtml({...payload,ownedRoll:changed}),rollInspectorHtml(payload),`Weapon case ${counts.weapons}: selection affected guide content`);
+    counts.inspectorCases++;
     counts.labels[verdict.badge||'blank']=(counts.labels[verdict.badge||'blank']||0)+1;
   }
 }

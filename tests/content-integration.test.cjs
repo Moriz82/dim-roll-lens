@@ -45,7 +45,7 @@ window.eval(fs.readFileSync(path.resolve('dist/content.js'),'utf8'));
   await window.chrome.storage.local.set({aegisSheetDbPvP:null});
   await new Promise(r=>setTimeout(r,250));
   assert.equal(tile.dataset.rlUsage,'pve');
-  // A native popup must keep its original title behavior and receive only socket checks.
+  // A native popup keeps its title behavior, socket checks and a separate viewport guide.
   const popup=window.document.createElement('div');popup.className='item-popup';
   for(const attr of tile.attributes) if(attr.name.startsWith('data-aegis-')) popup.setAttribute(attr.name,attr.value);
   popup.innerHTML='<h1>Native weapon title</h1><div id="native-perk" data-rl-plug-hash="3" data-rl-plug-slot="perk1"><svg><image href="perk.png" /></svg></div>';
@@ -53,7 +53,12 @@ window.eval(fs.readFileSync(path.resolve('dist/content.js'),'utf8'));
   window.document.body.append(popup);await new Promise(r=>setTimeout(r,250));
   assert.equal(popup.querySelectorAll('.rl-item-card,.aegis-popup-summary,.aegis-title-badge,[data-aegis-details]').length,0);
   assert.equal(popup.querySelectorAll('.rl-perk-check').length,1);
+  const guide=window.document.getElementById('rl-roll-inspector');assert.equal(guide.parentElement,popup);
+  assert.equal(guide.querySelectorAll('.rl-inspector-activity').length,2);
+  assert.match(guide.querySelector('.rl-inspector-activity.rl-inspector-pve').textContent,/5\/5 · God roll/);
+  assert.match(guide.querySelector('.rl-inspector-activity.rl-inspector-pvp').textContent,/No compatible recommendation/);
   popup.querySelector('h1').click();assert.ok(sentinel.isConnected,'Lens adds no legacy title click action');
   popup.querySelector('#native-perk').dataset.rlPlugHash='999';await new Promise(r=>setTimeout(r,150));assert.equal(popup.querySelectorAll('.rl-perk-check').length,0,'Native identity mutations rescore their containing popup');
+  popup.remove();await new Promise(r=>setTimeout(r,150));assert.equal(window.document.getElementById('rl-roll-inspector'),null,'The guide closes with DIM');
   shutdown();console.log('Built-content integration passed: bundled recommendations, dashboard, mutation rescore, deduplication and missing-source isolation.');
 })().catch(error=>{shutdown();console.error(error);process.exitCode=1;});

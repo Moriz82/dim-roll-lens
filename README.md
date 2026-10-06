@@ -26,13 +26,14 @@ God labels take priority over one-away labels and UNDEF. Otherwise, one-away lab
 
 The gun's exact Bungie hash and legal trait pool help distinguish weapon editions with shared origin traits. This manifest data establishes source compatibility only; it never adds perks to the gun's owned choices. Fixed-roll weapons stay unlabeled because there is no random roll to grade. Missing DIM randomization metadata does not hide an undefined roll.
 
-Clicking an item opens DIM’s normal popup. Matching recommended perks receive a **gold circle and check** on their existing icons, including inactive choices. The overlay adds no item card, custom hover card or title action. The optional **Roll Lens** dashboard provides source notes and a five-slot breakdown when you open it.
+Clicking an item opens DIM’s normal popup. Matching recommended perks receive a **gold circle and check** on their existing icons, including inactive choices. A **god-roll guide docks to the right side of the screen** beside the native popup. It shows PvE and PvP scores, recommended choices (Want), every owned option (Have), and exactly which slots are missing. Alternative source combinations stay separate, with the closest complete combination first. Source notes explain the author's reasoning when available. The guide closes with the item and can be dismissed independently. DIM's title actions and item controls stay intact. The optional **Roll Lens** dashboard provides an inventory overview.
 
 PvE uses **Aegis**. PvP uses **Finnald / Pride Eternal**. Recommendations reflect those sources; weapon meta tiers and optional Light.gg popularity grades do not establish a god roll.
 
 ## Features
 
 - Simultaneous PvE, PvP and both labels, with optional keeper outlines.
+- A right-side guide opens with each weapon: both activities, coherent possible god rolls, and missing-slot explanations.
 - A **Roll Lens** button inside DIM opens a searchable inventory overview.
 - Filter god rolls by activity, find one-away rolls, and inspect undefined coverage.
 - Clean tile labels for 5/5 and 4/5 rolls, with a gray slashed UNDEF only when neither source can establish a five-slot verdict. Fixed rolls stay clear. Gold checks stay inside DIM’s native perk controls.
@@ -86,7 +87,7 @@ Run `npm run dev` and open `/preview.html` for an interactive synthetic inventor
 
 ## Validation and limits
 
-Unit/DOM tests cover coherent five-slot combinations, inactive owned choices, selection invariance, wrong-column rejection, exact masterwork matching, undefined source coverage, native icon checks, HTML escaping and dashboard controls. Built-bundle tests exercise mutation-triggered rescoring and source isolation. Package validation checks both manifests and required ZIP paths.
+Unit/DOM tests cover coherent five-slot combinations, inactive owned choices, selection invariance, wrong-column rejection, exact masterwork matching, undefined source coverage, native icon checks, HTML escaping, guide lifecycle and dashboard controls. Built-bundle tests exercise mutation-triggered rescoring and source isolation. Package validation checks both manifests and required ZIP paths.
 
 See [validation](docs/VALIDATION.md) for release-specific evidence and inventory coverage. The DIM bridge reads React item data; DIM changes can break it. Bundled recommendations come from the upstream snapshot. A successful refresh confirms retrieval, not that every weapon recommendation reflects the latest sandbox.
 

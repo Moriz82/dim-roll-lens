@@ -1,12 +1,12 @@
 {
   "name": "dim-roll-lens",
-  "version": "2.1.1",
+  "version": "2.2.0",
   "description": "Instant PvE, PvP and dual-purpose god-roll verdicts inside Destiny Item Manager",
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "tsc && node scripts/build.mjs",
-    "test": "node tests/item-queue.test.cjs && node tests/dom-utils.test.cjs && node tests/grading.test.cjs && node tests/i18n.test.cjs && node tests/roll-lens.test.cjs && node tests/roll-lens-ui.test.cjs && node tests/native-perk-bridge.test.cjs && node tests/roll-source.test.cjs",
+    "test": "node tests/item-queue.test.cjs && node tests/dom-utils.test.cjs && node tests/grading.test.cjs && node tests/i18n.test.cjs && node tests/roll-lens.test.cjs && node tests/roll-lens-ui.test.cjs && node tests/roll-inspector.test.cjs && node tests/native-perk-bridge.test.cjs && node tests/roll-source.test.cjs",
     "package": "node scripts/package.mjs",
     "build:all": "tsc && node scripts/build.mjs && node scripts/package.mjs",
     "preview": "vite preview",

@@ -6,7 +6,8 @@ export type LensRule = 'traits' | 'complete';
 export type LensState = 'god' | 'swap' | 'good' | 'partial' | 'unknown' | 'fixed';
 export type LensUsage = 'pve' | 'pvp' | 'both' | 'none';
 export type SourceResolution = 'resolved' | 'incomplete' | 'missing' | 'ambiguous';
-type Slot = 'barrel' | 'mag' | 'perk1' | 'perk2' | 'masterwork';
+export type RollSlot = 'barrel' | 'mag' | 'perk1' | 'perk2' | 'masterwork';
+type Slot = RollSlot;
 export interface NativeRecommended { hash: number; slot: Slot }
 export interface LensSlot {
   label: string; type: TooltipPerk['type'] | 'masterwork';
@@ -30,6 +31,11 @@ const activityName = (u: LensUsage) => u === 'both' ? 'PvE + PvP' : u === 'pve' 
 export const normalizeRollPerk = (value: string): string => value.toLowerCase().replace(/^enhanced\s+/, '').replace(/\s*\(enhanced\)\s*$/, '').replace(/\s+enhanced\s*$/, '').replace(/[^a-z0-9]/g, '');
 const normalizeMW = (value: string) => normalizeMasterwork(value.replace(/\btier\s*\d+\s*:?\s*/ig, '')).replace(/[^a-z0-9]/g, '');
 const choices = (raw?: string): string[] => !raw?.trim() || /^(?:n\/?a|none|any|undefined|undef|unknown|tbd|see notes)$/i.test(raw.trim()) ? [] : raw.split(/[\n/,]+/).map(s=>s.trim()).filter(s => !!normalizeRollPerk(s) && !/^(?:n\/?a|none|any|undefined|undef|unknown|tbd|see notes)$/i.test(s));
+/** The inspector and verdict share the same exact slot/name matching. */
+export function recommendedOwnedPlugs(owned: OwnedRollData | null | undefined, slot: RollSlot, recommendations: string[]) {
+  const normalize = slot === 'masterwork' ? normalizeMW : normalizeRollPerk;
+  return (owned?.slots?.[slot]?.plugs || []).filter(p => !!normalize(p.name) && recommendations.some(r => normalize(r) === normalize(p.name))).sort((a, b) => a.hash - b.hash);
+}
 function empty(activity: 'pve'|'pvp', resolution: SourceResolution = 'missing'): ActivityVerdict {
   return { activity, state:'unknown', label:'Undefined five-slot roll', source:activity === 'pve' ? 'Aegis' : 'Finnald',
     sourceUrl:`https://docs.google.com/spreadsheets/d/${activity === 'pve' ? '1JM-0SlxVDAi-C6rGVlLxa-J1WGewEeL8Qvq4htWZHhY' : '1TVgtTRWNGEPi6OMlTLxXFSKUTi_ycwykhwuw8EW_jJ0'}/edit`,
@@ -44,8 +50,7 @@ export function activityVerdict(activity: 'pve'|'pvp', sheet?: AegisSheetWeapon|
   for (const [slot,label,field] of fields) {
     const recommendations=choices(sheet[field]);
     const socket=owned?.slots?.[slot];
-    const normalize=slot === 'masterwork' ? normalizeMW : normalizeRollPerk;
-    const matches=(socket?.plugs||[]).filter(p=>!!normalize(p.name) && recommendations.some(r=>normalize(r)===normalize(p.name))).sort((a,b)=>a.hash-b.hash);
+    const matches=recommendedOwnedPlugs(owned,slot,recommendations);
     const selected=matches[0];
     const status=!recommendations.length ? 'unspecified' : selected ? selected.active ? 'active' : 'selectable' : 'missing';
     v.slots.push({type:slot,label,status,recommendations,selected:selected?.name});
@@ -62,15 +67,20 @@ export function activityVerdict(activity: 'pve'|'pvp', sheet?: AegisSheetWeapon|
   v.state=v.perfect?'god':'partial'; v.label=v.perfect?'God roll · 5/5 owned':v.distance===1?'One slot away · 4/5 owned':`${v.ownedMatches}/5 slots owned`;
   return v;
 }
-function bestActivity(activity:'pve'|'pvp',data:WeaponEvaluationPayload):ActivityVerdict {
+/** All compatible source rows, kept as whole combinations and ranked by owned matches. */
+export function activityRecommendations(activity:'pve'|'pvp',data:WeaponEvaluationPayload):ActivityVerdict[] {
+  if(data.ownedRoll?.randomizedTraits===false) return [];
   const resolution=activity==='pve'?data.sourceResolutionPvE:data.sourceResolutionPvP;
-  if(resolution && resolution!=='resolved') return empty(activity,resolution);
+  if(resolution && resolution!=='resolved') return [];
   const supplied=activity==='pve'?data.sheetWeaponPvECandidates:data.sheetWeaponPvPCandidates;
   const fallback=activity==='pve'?data.sheetWeaponPvE:data.sheetWeaponPvP;
   // An explicitly empty candidate list means unresolved; do not borrow legacy selection.
   const rows=supplied!==undefined ? supplied : fallback?[fallback]:[];
-  if(!rows.length)return empty(activity);
-  return rows.map(row=>activityVerdict(activity,row,data.ownedRoll)).sort((a,b)=>Number(b.sourceResolution==='resolved')-Number(a.sourceResolution==='resolved') || b.ownedMatches-a.ownedMatches)[0];
+  return rows.map(row=>activityVerdict(activity,row,data.ownedRoll)).sort((a,b)=>Number(b.sourceResolution==='resolved')-Number(a.sourceResolution==='resolved') || b.ownedMatches-a.ownedMatches);
+}
+function bestActivity(activity:'pve'|'pvp',data:WeaponEvaluationPayload):ActivityVerdict {
+  const resolution=activity==='pve'?data.sourceResolutionPvE:data.sourceResolutionPvP;
+  return activityRecommendations(activity,data)[0] || empty(activity,resolution && resolution !== 'resolved' ? resolution : 'missing');
 }
 export function evaluateLens(data:WeaponEvaluationPayload,_rule:LensRule='complete'):LensVerdict {
   if(data.ownedRoll?.randomizedTraits===false) {

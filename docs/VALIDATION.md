@@ -1,5 +1,16 @@
 # Release validation
 
+## Version 2.2.0 — October 6, 2026
+
+Opening a weapon now displays a guide at the right edge of the viewport beside DIM's native popup. Both activity scores and missing-slot summaries remain visible above the scrollable breakdown. Each source combination shows all five recommended slots (Want), every owned option (Have), checks on owned recommendations, and available source notes. Multiple source rows remain separate; the closest complete row appears first. Fixed rolls and incomplete coverage receive explanations rather than invented recommendations.
+
+- The same private four-store snapshot passed for **389 items and all 97 weapons**, including **97 guide cases**, the independent five-slot oracle, **497 actual-owned hash checks**, and selected-perk reversal. Guide content and tile verdicts are invariant to active selections. Existing label counts are unchanged: 2 PVE, 4 PVP, 3 PVE-1, 7 PVP-1, 1 dual one-away, 75 blank and 5 UNDEF. Private snapshots and live screenshots remain outside public history.
+- Unit/DOM regressions cover both activities, coherent alternate combinations, inactive options, actual non-matching owned choices, source/DIM gaps, ambiguous editions, fixed rolls, HTML escaping, deduplication, independent dismissal, item switching, unrelated nonweapon tiles and retained source-note expansion. The guide explicitly receives pointer events despite [DIM's non-interactive desktop popup root](https://github.com/DestinyItemManager/DIM/blob/master/src/app/item-popup/ItemPopup.m.scss). A regression loads the production CSS under that native parent style.
+- TypeScript, production Firefox/Chromium builds, all three built-bundle integrations, both package checks and diff checks passed. A read-only reviewer found no remaining material issue.
+- Signed-in Firefox Nightly loaded the final 2.2.0 build. The Recluse guide showed PvE 3/5 with barrel/magazine missing and PvP 4/5 with masterwork missing. Its native gold checks and controls remained intact. Riptide correctly showed a 5/5 PvE god roll. Mouse-wheel input scrolled only the guide, floating launchers no longer covered it, closing the guide retained the native popup, changing the weapon opened its own guide, and Escape closed the item/guide. Source notes expanded correctly. Agent-created debugging tabs were closed, user tabs retained, and Firefox was left on the Recluse popup with the finished right-side guide.
+
+The guide explains matching against the available community recommendations. It does not expand source coverage or infer missing recommendations. Firefox remains an unsigned temporary developer install.
+
 ## Version 2.1.1 — October 6, 2026
 
 The earlier undefined coverage was overly broad. This release leaves positively identified fixed-roll weapons unlabeled, retains a complete evaluation when the other activity lacks coverage, and resolves shared-origin editions using the exact Bungie hash's legal trait pool and full origin sets. Manifest possibilities still never count as owned, and god rolls still require one complete owned 5/5 combination.
