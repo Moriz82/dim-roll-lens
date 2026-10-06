@@ -1,4 +1,4 @@
-import type { AegisSheetDatabase, AegisSheetWeapon } from './types';
+import type { AegisSheetDatabase, AegisSheetWeapon, ManifestWeapon } from './types';
 import type { OwnedRollPerk } from './owned-rolls';
 import { normalizeRollPerk } from './roll-lens';
 export type SourceResolution = 'resolved' | 'incomplete' | 'missing' | 'ambiguous';
@@ -7,8 +7,16 @@ const full=(value:string)=>value.toLowerCase().replace(/[^a-z0-9]+/g,' ').trim()
 const base=(value:string)=>full(value.replace(/\s*\([^)]*\)\s*$/,''));
 const edition=(row:AegisSheetWeapon)=>full(row.versionTag || row.name.match(/\(([^)]*)\)\s*$/)?.[1] || 'original');
 const originChoices=(raw:string)=>/^(?:-|—|none|n\/?a|any)$/i.test(raw.trim())?[]:raw.split(/[\n/,]+/).map(normalizeRollPerk).filter(Boolean);
+type WeaponIdentity = Pick<ManifestWeapon, 'hash' | 'name' | 'perkColumns'>;
+function fitsTraitPool(row:AegisSheetWeapon, weapon:WeaponIdentity):boolean {
+  return [row.perk1,row.perk2].every((raw,index)=>{
+    const wanted=originChoices(raw||'');
+    const possible=new Set((weapon.perkColumns?.[index]||[]).map(normalizeRollPerk));
+    return wanted.length>0 && possible.size>0 && wanted.every(choice=>possible.has(choice));
+  });
+}
 /** Resolve the weapon edition first; only whole rows in that edition are candidates. */
-export function resolveRollSourceCandidates(db:AegisSheetDatabase|null|undefined,name:string,_itemHash:number|undefined,owned:OwnedRollPerk[]):SourceCandidates {
+export function resolveRollSourceCandidates(db:AegisSheetDatabase|null|undefined,name:string,itemHash:number|undefined,owned:OwnedRollPerk[],weapon?:WeaponIdentity):SourceCandidates {
   if(!db?.weapons)return {rows:[],resolution:'missing'};
   const nativeName=name.split('\n')[0].trim();
   const key=Object.keys(db.variants||{}).find(k=>base(k)===base(nativeName));
@@ -19,9 +27,19 @@ export function resolveRollSourceCandidates(db:AegisSheetDatabase|null|undefined
   const origins=owned.filter(p=>p.slot==='origin').map(p=>normalizeRollPerk(p.name)).filter(Boolean);
   const exactEdition=rows.filter(r=>full(r.name)===full(nativeName));
   if(nativeName.includes('(') && exactEdition.length)rows=exactEdition;
+  // The exact Bungie hash's legal trait pool identifies editions independently
+  // of which traits this instance owns. It is never added to the owned roll.
+  const identity=weapon && weapon.hash===itemHash && base(weapon.name)===base(nativeName) ? weapon : undefined;
+  const compatible=identity ? rows.filter(row=>fitsTraitPool(row,identity)) : [];
+  if(compatible.length)rows=compatible;
   const withOrigin=rows.filter(row=>originChoices(row.origin||'').some(o=>origins.includes(o)));
   if(withOrigin.length)rows=withOrigin;
-  else if(origins.length && rows.some(r=>originChoices(r.origin||'').length))return {rows:[],resolution:'ambiguous'};
+  else if(!compatible.length && origins.length && rows.some(r=>originChoices(r.origin||'').length))return {rows:[],resolution:'ambiguous'};
+  const exactOrigins=rows.filter(row=>{
+    const recommended=new Set(originChoices(row.origin||''));
+    return origins.length>0 && recommended.size===new Set(origins).size && origins.every(origin=>recommended.has(origin));
+  });
+  if(exactOrigins.length)rows=exactOrigins;
   const editions=new Set(rows.map(edition));
   if(editions.size!==1)return {rows:[],resolution:'ambiguous'};
   return {rows,resolution:'resolved'};

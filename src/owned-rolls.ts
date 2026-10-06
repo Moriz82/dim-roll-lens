@@ -29,6 +29,7 @@ export interface OwnedRollSocket {
   socketIndex?: number;
   socketTypeHash?: number;
   socketDefinition?: { socketTypeHash?: number };
+  hasRandomizedPlugItems?: boolean;
   plugged?: OwnedRollPlug | OwnedRollDefinition | null;
   reusablePlugItems?: OwnedRollPlug[];
   /** Present for diagnostics only; never used to add an owned perk. */
@@ -163,6 +164,8 @@ export function ownedRollsBySlot(perks: OwnedRollPerk[]): Record<OwnedRollSlot, 
 
 export interface OwnedRollData {
   slots: Record<OwnedRollSlot, { complete: boolean; plugs: Array<{ hash: number; name: string; icon: string; active: boolean }> }>;
+  /** False only when DIM positively identifies all present main-trait sockets as fixed. */
+  randomizedTraits?: boolean;
 }
 
 /** Public fixture/test representation of a canonical item roll. */
@@ -173,5 +176,8 @@ export function buildOwnedRollData(sockets: OwnedRollSocket[] | null | undefined
     slots[slot] = { complete: bySlot[slot].length > 0, plugs: bySlot[slot].map(({ hash, name, icon, active }) => ({ hash, name, icon, active })) };
   }
   slots.masterwork = { complete: !!masterwork.trim(), plugs: masterwork.trim() ? [{ hash: masterworkHash, name: masterwork.trim(), icon: '', active: true }] : [] };
-  return { slots };
+  const traitSockets=(sockets||[]).filter(s=>[1215804697,1215804696].includes(s.socketTypeHash ?? s.socketDefinition?.socketTypeHash ?? 0));
+  const randomizedTraits=traitSockets.some(s=>s.hasRandomizedPlugItems===true) ? true :
+    traitSockets.length>0 && traitSockets.every(s=>s.hasRandomizedPlugItems===false) ? false : undefined;
+  return { slots, randomizedTraits };
 }

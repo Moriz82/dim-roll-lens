@@ -73,9 +73,13 @@ function bestActivity(activity:'pve'|'pvp',data:WeaponEvaluationPayload):Activit
   return rows.map(row=>activityVerdict(activity,row,data.ownedRoll)).sort((a,b)=>Number(b.sourceResolution==='resolved')-Number(a.sourceResolution==='resolved') || b.ownedMatches-a.ownedMatches)[0];
 }
 export function evaluateLens(data:WeaponEvaluationPayload,_rule:LensRule='complete'):LensVerdict {
+  if(data.ownedRoll?.randomizedTraits===false) {
+    const fixed=(activity:'pve'|'pvp'):ActivityVerdict=>({...empty(activity),state:'fixed',label:'Fixed roll',requiredCount:0,sourceResolution:'resolved',notes:'This weapon has fixed main traits. There is no random roll to grade.'});
+    return {pve:fixed('pve'),pvp:fixed('pvp'),usage:'none',potentialUsage:'none',nearUsage:'none',badge:'',state:'fixed',label:'Fixed roll',sourceResolution:'resolved'};
+  }
   const pve=bestActivity('pve',data),pvp=bestActivity('pvp',data);
   const usage=usageFor(pve.perfect,pvp.perfect),nearUsage=usageFor(pve.distance===1,pvp.distance===1);
-  const undefinedRoll=pve.distance===null||pvp.distance===null;
+  const undefinedRoll=pve.distance===null&&pvp.distance===null;
   const badge=usage!=='none'?usage.toUpperCase():nearUsage!=='none'?[pve.distance===1?'PVE-1':'',pvp.distance===1?'PVP-1':''].filter(Boolean).join(' '):undefinedRoll?'UNDEF':'';
   const sourceResolution:SourceResolution=usage!=='none'||nearUsage!=='none'||!undefinedRoll?'resolved':[pve,pvp].some(v=>v.sourceResolution==='ambiguous')?'ambiguous':[pve,pvp].some(v=>v.sourceResolution==='incomplete')?'incomplete':'missing';
   const state:LensState=usage!=='none'?'god':badge==='UNDEF'?'unknown':'partial';

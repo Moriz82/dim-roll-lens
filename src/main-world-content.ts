@@ -45,7 +45,7 @@ function weaponReadInputs(item: any): unknown[] {
   const addPlug = (def: any) => inputs.push(!!def, def?.hash, def?.displayProperties?.name,
     def?.displayProperties?.icon, def?.plug?.plugCategoryIdentifier, def?.itemTypeDisplayName);
   for (const socket of item.sockets?.allSockets || []) {
-    inputs.push(!!socket, socket?.socketIndex, socket?.socketTypeHash, socket?.socketDefinition?.socketTypeHash, socket?.reusablePlugItems?.length, socket?.plugOptions?.length);
+    inputs.push(!!socket, socket?.socketIndex, socket?.socketTypeHash, socket?.socketDefinition?.socketTypeHash, socket?.hasRandomizedPlugItems, socket?.reusablePlugItems?.length, socket?.plugOptions?.length);
     addPlug(socket?.plugged?.plugDef);
     for (const option of socket?.reusablePlugItems || []) { inputs.push(option?.plugItemHash); addPlug(option.plugDef || option); }
     for (const option of socket?.plugOptions || []) addPlug(option.plugDef);

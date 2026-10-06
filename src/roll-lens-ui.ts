@@ -15,9 +15,9 @@ export function isLensEnabled(): boolean { return settings.enabled; }
 export function renderLensCard(data: WeaponEvaluationPayload): string { return lensCardHtml(data.name, evaluateLens(data, settings.rule)); }
 
 function activityHtml(v: ActivityVerdict): string {
-  const match = v.matchedCount === null ? 'Five-slot verdict undefined' : `${v.matchedCount}/5 recommended slots owned`;
+  const match = v.state === 'fixed' ? 'No random roll to grade' : v.matchedCount === null ? 'Five-slot verdict undefined' : `${v.matchedCount}/5 recommended slots owned`;
   const rows = v.slots.map(s => `<li class="rl-slot rl-slot-${s.status}"><span class="rl-slot-status">${s.status === 'active' || s.status === 'selectable' ? '✓' : s.status === 'missing' ? '−' : '/'}</span><div><small>${s.label}</small><span>${escape(s.selected || s.recommendations.join(' / ') || 'No source recommendation')}</span></div><em>${s.status === 'active' || s.status === 'selectable' ? 'Owned' : s.status === 'missing' ? 'Missing' : 'Undefined'}</em></li>`).join('');
-  return `<section class="rl-activity rl-${v.activity}"><div class="rl-activity-heading"><b>${v.activity === 'pve' ? 'PvE' : 'PvP'}</b><span class="rl-status rl-status-${v.state}">${escape(v.label)}</span></div><p class="rl-match">${match}</p>${rows ? `<ul class="rl-slots">${rows}</ul>` : '<p class="rl-empty-detail">This source has no complete five-slot recommendation for this weapon.</p>'}${v.notes ? `<p class="rl-notes">${escape(v.notes)}</p>` : ''}<footer><a href="${v.sourceUrl}" target="_blank" rel="noopener noreferrer">${v.source} ↗</a>${v.tier ? `<span>Weapon meta tier ${escape(v.tier)}</span>` : ''}</footer></section>`;
+  return `<section class="rl-activity rl-${v.activity}"><div class="rl-activity-heading"><b>${v.activity === 'pve' ? 'PvE' : 'PvP'}</b><span class="rl-status rl-status-${v.state}">${escape(v.label)}</span></div><p class="rl-match">${match}</p>${rows ? `<ul class="rl-slots">${rows}</ul>` : v.state === 'fixed' ? '' : '<p class="rl-empty-detail">This source has no complete five-slot recommendation for this weapon.</p>'}${v.notes ? `<p class="rl-notes">${escape(v.notes)}</p>` : ''}<footer><a href="${v.sourceUrl}" target="_blank" rel="noopener noreferrer">${v.source} ↗</a>${v.tier ? `<span>Weapon meta tier ${escape(v.tier)}</span>` : ''}</footer></section>`;
 }
 
 export function lensCardHtml(name: string, verdict: LensVerdict): string {
@@ -77,7 +77,7 @@ export function applyLens(el: HTMLElement, data: WeaponEvaluationPayload): void 
   badge.dataset.state = verdict.usage !== 'none' ? 'god' : verdict.badge === 'UNDEF' ? 'undefined' : 'near';
   badge.dataset.usage = verdict.usage !== 'none' ? verdict.usage : verdict.nearUsage;
   badge.textContent = verdict.badge;
-  badge.title = verdict.badge === 'UNDEF' ? 'Undefined: a source recommendation or item slot is missing, or the weapon edition is unresolved.' : `${verdict.badge}. PvE: ${verdict.pve.label}. PvP: ${verdict.pvp.label}.`;
+  badge.title = verdict.badge === 'UNDEF' ? 'Undefined: neither activity has a complete five-slot evaluation for this weapon.' : `${verdict.badge}. PvE: ${verdict.pve.label}. PvP: ${verdict.pvp.label}.`;
   badge.setAttribute('aria-label', badge.title);
 }
 

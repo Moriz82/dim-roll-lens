@@ -5729,8 +5729,8 @@ function evaluateWeapon(
     }
   } else if (aegisMode === 'both') {
     const ownedRollPerks = ownedRollPerksFromMap(perksMap, activeHashes);
-    const pveSources = aegisSheetDbPvE ? resolveRollSourceCandidates(aegisSheetDbPvE, weaponName, itemHash, ownedRollPerks) : { rows: [], resolution: 'missing' as const };
-    const pvpSources = aegisSheetDbPvP ? resolveRollSourceCandidates(aegisSheetDbPvP, weaponName, itemHash, ownedRollPerks) : { rows: [], resolution: 'missing' as const };
+    const pveSources = aegisSheetDbPvE ? resolveRollSourceCandidates(aegisSheetDbPvE, weaponName, itemHash, ownedRollPerks, manifestWeaponsByHash[itemHash]) : { rows: [], resolution: 'missing' as const };
+    const pvpSources = aegisSheetDbPvP ? resolveRollSourceCandidates(aegisSheetDbPvP, weaponName, itemHash, ownedRollPerks, manifestWeaponsByHash[itemHash]) : { rows: [], resolution: 'missing' as const };
     sheetWeaponPvECandidates = pveSources.rows; sheetWeaponPvPCandidates = pvpSources.rows;
     sourceResolutionPvE = pveSources.resolution; sourceResolutionPvP = pvpSources.resolution;
     sheetWeaponPvE = sheetWeaponPvECandidates[0] || null;
@@ -5913,8 +5913,8 @@ function evaluateWeapon(
   // Roll Lens always evaluates both activities, independent of legacy badge mode.
   if (aegisMode !== 'both' || scoringSource === 'lightgg') {
     const ownedRollPerks = ownedRollPerksFromMap(perksMap, activeHashes);
-    const pveSources = aegisSheetDbPvE ? resolveRollSourceCandidates(aegisSheetDbPvE, weaponName, itemHash, ownedRollPerks) : { rows: [], resolution: 'missing' as const };
-    const pvpSources = aegisSheetDbPvP ? resolveRollSourceCandidates(aegisSheetDbPvP, weaponName, itemHash, ownedRollPerks) : { rows: [], resolution: 'missing' as const };
+    const pveSources = aegisSheetDbPvE ? resolveRollSourceCandidates(aegisSheetDbPvE, weaponName, itemHash, ownedRollPerks, manifestWeaponsByHash[itemHash]) : { rows: [], resolution: 'missing' as const };
+    const pvpSources = aegisSheetDbPvP ? resolveRollSourceCandidates(aegisSheetDbPvP, weaponName, itemHash, ownedRollPerks, manifestWeaponsByHash[itemHash]) : { rows: [], resolution: 'missing' as const };
     sheetWeaponPvECandidates = pveSources.rows; sheetWeaponPvPCandidates = pvpSources.rows;
     sourceResolutionPvE = pveSources.resolution; sourceResolutionPvP = pvpSources.resolution;
     sheetWeaponPvE = sheetWeaponPvECandidates[0] || null;
@@ -7290,6 +7290,7 @@ function updateBadgesOpacity(roots: Iterable<HTMLElement> = [document.body]) {
 
 // Run initial scan once script loads
 reprocessAllElements();
+loadManifestWeapons().then(loaded => { if (loaded) reprocessAllElements(); });
 if (!IS_WINNOWER_HOST) {
   updateBadgesOpacity();
 }

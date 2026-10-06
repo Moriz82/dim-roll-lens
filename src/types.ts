@@ -283,6 +283,7 @@ export interface OwnedRollPlugData {
 }
 export interface OwnedRollData {
   slots: Record<'barrel' | 'mag' | 'perk1' | 'perk2' | 'masterwork' | 'origin', { complete: boolean; plugs: OwnedRollPlugData[] }>;
+  randomizedTraits?: boolean;
 }
 
 /**

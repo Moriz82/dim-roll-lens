@@ -1,5 +1,15 @@
 # Release validation
 
+## Version 2.1.1 — October 6, 2026
+
+The earlier undefined coverage was overly broad. This release leaves positively identified fixed-roll weapons unlabeled, retains a complete evaluation when the other activity lacks coverage, and resolves shared-origin editions using the exact Bungie hash's legal trait pool and full origin sets. Manifest possibilities still never count as owned, and god rolls still require one complete owned 5/5 combination.
+
+- The same four-store private snapshot passed again for all **389 items and 97 weapons**, including 52 positively fixed weapons. UNDEF fell from **76 to 5**. Final labels were 2 PVE, 4 PVP, 3 PVE-1, 7 PVP-1, 1 dual one-away, 75 blank and 5 UNDEF. All 97 weapons passed the independent whole-row oracle, selected-perk reversal, and 497 actual-owned hash checks.
+- The five remaining undefined weapons have genuinely unavailable five-slot recommendations or unresolved legacy edition coverage. Fixed classification requires explicit DIM flags on the known main-trait sockets; absent metadata stays unknown. DIM derives this flag from its socket definition's randomized plug set or always-randomized socket type ([DIM socket implementation](https://github.com/DestinyItemManager/DIM/blob/master/src/app/inventory/store/sockets.ts)).
+- Unit/DOM tests passed for known-versus-unknown randomization, clearing fixed-roll badges and checks, one-activity evaluation precedence, exact hash/name validation, shared-origin resolution and unchanged five-slot ownership rules. TypeScript, both builds, all built-bundle integrations and package validation passed. A read-only reviewer found no material defect.
+- Manifest loading now runs at startup. Completion clears evaluation caches and reprocesses items so transient edition ambiguity does not persist.
+- Final signed-in Firefox QA confirmed four stores/389 items, exactly 5 live UNDEF labels, zero badges on fixed-roll items, six native gold checks on the open Recluse popup and zero added cards/title badges. Smallbore and inactive recommended choices were marked inside DIM's existing perk section. The temporary debugging tab was closed; the browser was left on the clean weapon grid.
+
 ## Version 2.1.0 — October 6, 2026
 
 This release supersedes the earlier active-perk definitions. God rolls require one complete five-slot recommendation: barrel, magazine, trait 1, trait 2 and masterwork. All owned options count, including inactive choices. Recommendation rows remain separate, and manifest/craftable possibilities do not count as owned. Missing source slots, incomplete item sockets and ambiguous weapon editions show gray slashed UNDEF unless a known god or one-away verdict takes priority.

@@ -15,14 +15,16 @@ Built on [Maxeption’s dim-aegis-overlay](https://github.com/Maxeption/dim-aegi
 | **BOTH** | The gun owns a complete 5/5 recommendation for each activity. |
 | **PVE-1** | Exactly one of the five recommended PvE slots is missing. |
 | **PVP-1** | Exactly one of the five recommended PvP slots is missing. |
-| **Gray slashed UNDEF** | A source slot or item socket is missing, or the weapon edition cannot be resolved. |
-| **No label** | Complete recommendations exist, but the gun is two or more slots away. Armor and other items have no Roll Lens labels. |
+| **Gray slashed UNDEF** | Neither activity can establish a complete five-slot evaluation. |
+| **No label** | An evaluated gun is two or more slots away, or DIM positively identifies fixed main traits. Armor and other items have no Roll Lens labels. |
 
 The five slots are **barrel, magazine, trait 1, trait 2 and masterwork**. All options present on the gun count, including inactive perks. Changing which perk is selected does not change its verdict. Craftable or manifest possibilities that are absent from the gun do not count.
 
 Each verdict requires **one complete recommended combination**. Alternatives inside that source row are allowed; different recommendation rows never combine into a synthetic 5/5. PvE and PvP can each match a different complete combination that the gun owns.
 
-God labels take priority over one-away labels and UNDEF. Otherwise, one-away labels take priority over UNDEF. If both activities are one away, the tile shows **PVE-1 PVP-1**. A missing source recommendation never acts as a wildcard.
+God labels take priority over one-away labels and UNDEF. Otherwise, one-away labels take priority over UNDEF. If both activities are one away, the tile shows **PVE-1 PVP-1**. One activity's missing recommendation does not override the other's complete evaluation. A missing source recommendation never acts as a wildcard.
+
+The gun's exact Bungie hash and legal trait pool help distinguish weapon editions with shared origin traits. This manifest data establishes source compatibility only; it never adds perks to the gun's owned choices. Fixed-roll weapons stay unlabeled because there is no random roll to grade. Missing DIM randomization metadata does not hide an undefined roll.
 
 Clicking an item opens DIM’s normal popup. Matching recommended perks receive a **gold circle and check** on their existing icons, including inactive choices. The overlay adds no item card, custom hover card or title action. The optional **Roll Lens** dashboard provides source notes and a five-slot breakdown when you open it.
 
@@ -33,7 +35,7 @@ PvE uses **Aegis**. PvP uses **Finnald / Pride Eternal**. Recommendations reflec
 - Simultaneous PvE, PvP and both labels, with optional keeper outlines.
 - A **Roll Lens** button inside DIM opens a searchable inventory overview.
 - Filter god rolls by activity, find one-away rolls, and inspect undefined coverage.
-- Clean tile labels for 5/5 and 4/5 rolls, with a gray slashed UNDEF when the source cannot establish a five-slot verdict. Gold checks stay inside DIM’s native perk controls.
+- Clean tile labels for 5/5 and 4/5 rolls, with a gray slashed UNDEF only when neither source can establish a five-slot verdict. Fixed rolls stay clear. Gold checks stay inside DIM’s native perk controls.
 - Keyboard-accessible dialog, search, filters and close controls; narrow-screen layout.
 - Bundled public recommendations for an offline first load, plus daily refresh. Failed/empty refreshes preserve cached ratings.
 - Simple toolbar settings with upstream advanced customization, wishlist, armor, explorer and optional Light.gg tools still available.
