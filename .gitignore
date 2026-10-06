@@ -5,3 +5,4 @@ dist/
 MOZILLA_REPRODUCTION.md
 src/*.js
 scratch/
+releases/

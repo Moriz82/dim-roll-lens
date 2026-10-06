@@ -1,60 +1,21 @@
-/**
- * Build script: produces a single release zip from the /dist folder.
- *   dim-aegis-overlay-v{version}.zip
- *
- * Run after `npm run build`:
- *   node scripts/package.mjs
- */
-
-import fs from 'fs';
-import path from 'path';
-import { execSync } from 'child_process';
-import { fileURLToPath } from 'url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const root = path.resolve(__dirname, '..');
-const distDir = path.join(root, 'dist');
-const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
-const version = pkg.version;
-
-// ── helpers ──────────────────────────────────────────────────────────────────
-
-function zip(sourceDir, outFile) {
-  if (fs.existsSync(outFile)) fs.unlinkSync(outFile);
-  // Use tar (bsdtar) on Windows to ensure forward slashes in ZIP archive paths.
-  // Firefox addons store rejects zips containing backslash path entries.
-  if (process.platform === 'win32') {
-    execSync(`tar -a -cf "${outFile}" -C "${sourceDir}" *`, { stdio: 'inherit' });
-  } else {
-    execSync(`zip -rj "${outFile}" "${sourceDir}"`, { stdio: 'inherit' });
-  }
+import fs from 'node:fs';
+import path from 'node:path';
+import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const version = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).version;
+const output = path.join(root, 'releases');
+fs.mkdirSync(output, { recursive: true });
+for (const browser of ['chromium', 'firefox']) {
+  const stage = path.join(output, browser);
+  fs.rmSync(stage, { recursive: true, force: true });
+  fs.cpSync(path.join(root, 'dist'), stage, { recursive: true });
+  if (browser === 'firefox') fs.copyFileSync(path.join(stage, 'manifest.firefox.json'), path.join(stage, 'manifest.json'));
+  fs.rmSync(path.join(stage, 'manifest.firefox.json'));
+  const archive = path.join(output, `dim-roll-lens-v${version}-${browser}.zip`);
+  fs.rmSync(archive, { force: true });
+  // Preserve nested data/, icons/ and locales/ paths; a flattened ZIP cannot load.
+  if (process.platform === 'win32') execFileSync('tar', ['-a', '-cf', archive, '-C', stage, '.'], { stdio: 'inherit' });
+  else execFileSync('zip', ['-qr', archive, '.'], { cwd: stage, stdio: 'inherit' });
+  console.log(`Packaged ${path.relative(root, archive)}`);
 }
-
-// ── Package Zip ─────────────────────────────────────────────────────────────
-
-const zipOut = path.join(root, `dim-aegis-overlay-v${version}.zip`);
-console.log(`📦  Packaging Extension → ${path.basename(zipOut)}`);
-zip(distDir, zipOut);
-console.log(`    ✓ Done`);
-
-// ── Package Source Zip ──────────────────────────────────────────────────────
-
-const srcZipOut = path.join(root, `dim-aegis-overlay-src.zip`);
-console.log(`📦  Packaging Source Code → ${path.basename(srcZipOut)}`);
-
-if (fs.existsSync(srcZipOut)) fs.unlinkSync(srcZipOut);
-
-if (process.platform === 'win32') {
-  const excludeList = ['node_modules', 'dist', '.git', '.github', '*.zip', 'scratch', '.agents', '.gemini'];
-  const excludeArgs = excludeList.map(item => `--exclude="${item}"`).join(' ');
-  execSync(`tar -a -cf "${srcZipOut}" ${excludeArgs} *`, { stdio: 'inherit' });
-} else {
-  execSync(`zip -r "${srcZipOut}" . -x "node_modules/*" "dist/*" ".git/*" ".github/*" "*.zip" "scratch/*" ".agents/*" ".gemini/*"`, { stdio: 'inherit' });
-}
-console.log(`    ✓ Done`);
-
-console.log('\n✅  Zips are ready:');
-console.log(`   ${path.basename(zipOut)}`);
-console.log(`   ${path.basename(srcZipOut)}`);
-
-

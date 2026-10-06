@@ -1,144 +1,98 @@
-# WE WON !!! DESTINY IS COMING BACK !!!!
+# ◈ DIM Roll Lens
 
-# DIM Aegis & PvP Roll Overlay
+**Know immediately whether your weapon is a PvE god roll, a PvP god roll, or both.**
 
-A powerful **Chrome / Opera / Firefox browser extension** that overlays Aegis PvE, Finnald PvP, and LowCo Armor set bonus rankings directly inside [Destiny Item Manager (DIM)](https://app.destinyitemmanager.com) and [Winnower](https://winnower.garden).
+Roll Lens is a browser extension for [Destiny Item Manager](https://app.destinyitemmanager.com/). It puts readable verdicts on your weapon tiles and explains exactly which recommended perks you have, which are selectable, and which are missing.
 
-It integrates Aegis's PvE meta spreadsheet, Finnald's PvP spreadsheet, local DIM `.txt` wishlists, LowCo Armor bonuses, and Light.gg's community Roll Appraiser into a unified, seamless HUD overlay.
+Built on [Maxeption’s dim-aegis-overlay](https://github.com/Maxeption/dim-aegis-overlay). **Thank you, Maxeption, for the original project and its foundation.** Original Git history and contributor attribution are preserved. See [credits](CREDITS.md).
 
----
+![Roll Lens dashboard showing synthetic demo rolls](docs/images/roll-lens-demo.jpg)
 
-##  Download & Install
+*Screenshot of the interactive demo. These synthetic rolls are interface examples, not a real inventory or current weapon recommendations.*
 
-### Firefox
-Get it on Firefox Add-ons: **[Download for Firefox](https://addons.mozilla.org/en-US/firefox/addon/dim-aegis-overlay/)**
+## What you see
 
-### Chrome & Opera
-Get it on the chrome webstore: **[Download for Chromium-based browsers (Opera/Chrome/Brave/...)](https://chromewebstore.google.com/detail/dim-aegis-pvp-roll-overla/affllljndbmlmcpghkklkgifklobkokc)**
+| Tile label | Meaning |
+| --- | --- |
+| **★ PVE** | Your active perks meet the PvE god-roll definition. |
+| **★ PVP** | Your active perks meet the PvP god-roll definition. |
+| **★ BOTH** | Your active perks meet both definitions at the same time. |
+| **↑ PVE / PVP / BOTH** | Recommended perks are present, but you must select them in DIM. |
+| **MATCH** | Partial recommendation match or great traits under strict matching. |
+| **?** | No usable recommendation or missing item data. This does not mean bad. |
+| **FIXED** | An exotic treated as fixed by the source, rather than a random-roll god verdict. |
 
----
+PvE uses **Aegis**. PvP uses **Finnald / Pride Eternal**. Activity verdicts use actual perk matches, independently of the weapon’s meta tier and optional Light.gg popularity grade.
 
-##  Key Features
+- **Both traits**, the default: both recommended main traits must be active. Barrel, magazine and masterwork matches appear in the breakdown. A complete match is marked **perfect**.
+- **Every detail**: every specified barrel, magazine, main trait and masterwork must match. Unspecified slots add no requirement. A matching inactive perk produces a swap verdict, not an active god-roll verdict.
 
-| Feature | Description |
-|---|---|
-|  **Customizable Badge Overlays** | Choose between Standard grading (`S+`, `S`, `A`...) or the **2-Tier Grading** combination (`BS+`, `SA`, `SF`) displaying archetype tier and roll accuracy together. |
-|  **Armor Set Bonuses (2pc / 4pc)** | Direct evaluation of armor set bonuses from LowCo and Aegis spreadsheets (`S/A`, `A/B`) on armor tiles and hover tooltips. |
-|  **PvE & PvP Modes** | Switch seamlessly between Aegis's endgame PvE analysis and Finnald's curated PvP roll rankings. |
-|  **Multi-Language Support (only in WIP)** | Full deep localization for English (`en`), Spanish (`es`), Korean (`ko`), Japanese (`ja`), Simplified Chinese (`zh-CHS`), and Traditional Chinese (`zh-CHT`). |
-|  **Recommended Perks Card** | View matched, selectable, and missing perks on your weapon in real-time. Can be toggled as a side-attached panel or inline inside DIM item sheets. |
-|  **Best in Category Comparison** | Compares weapon archetypes with category superiors (same frame and elemental damage type) to display meta viability. |
-|  **Aegis Database Explorer** | Slide-out search catalog launched via a floating action button (FAB) inside DIM to browse, filter, and inspect all weapon rankings. |
-|  **Vault Search & Filter Shortcuts** | Filter your inventory directly in DIM using `aegis:god`, `aegis:upgrade`, `aegis:p:s+`, `aegis:w:s`, `aegis:a:2p:s`, and more. |
-|  **Winnower Support** | Seamless compatibility with [Winnower.garden](https://winnower.garden) table layouts. |
-|  **Auto-Sync & Offline Cache** | Background updates check and refresh spreadsheet data every 24 hours with zero network latency when browsing items. |
+The dropdown in the toolbar popup selects your definition. Each item’s explanation identifies its community source. Recommendations are opinions and can change with the sandbox; the extension does not invent build or activity advice beyond the source notes.
 
----
+## Features
 
-##  How It Works
+- Simultaneous PvE, PvP and both labels, with optional keeper outlines.
+- A **Roll Lens** button inside DIM opens a searchable inventory overview.
+- Filter god rolls by activity, find perk swaps, and inspect unrated weapons.
+- Separate active, selectable and missing perks, plus masterwork matching and source notes.
+- Keyboard-accessible dialog, search, filters and close controls; narrow-screen layout.
+- Bundled public recommendations for an offline first load, plus daily refresh. Failed/empty refreshes preserve cached ratings.
+- Simple toolbar settings with upstream advanced customization, wishlist, armor, explorer and optional Light.gg tools still available.
 
-```
-  Google Sheets (Aegis / Finnald / LowCo) + GitHub Wishlists + Light.gg
-                               │
-               background.ts (Service Worker)
-       (fetches spreadsheets, handles alarms & IndexedDB/storage)
-                               │
-            ┌──────────────────┴──────────────────┐
-            │                                     │
-   main-world-content.ts                  lightgg-content.ts
-   (intercepts DIM React nodes,          (syncs Roll Appraiser grades)
-    annotates data-aegis-* attributes)
-            │
-            ▼
-        content.ts
-   (evaluates rolls, injects badges,
-    manages Explorer & search filters)
-            │
-            ▼
-        tooltip.ts
-   (renders glassmorphic hover tooltips & recommendation cards)
-```
+The dashboard counts **weapon instances currently loaded in DIM’s DOM**. It does not promise a complete account scan. Load your inventory and show the characters/items you want to inspect. The extension only displays recommendations; item operations stay in DIM.
 
----
+## Install
 
-##  Detailed Features
+Download the correct ZIP from [Releases](https://github.com/Moriz82/dim-roll-lens/releases/latest) and extract it. Disable any other Aegis overlay extension first to avoid duplicate overlays.
 
-###  Recommended Perks Card
-Inspect any weapon in DIM to see a dedicated checklist showing exactly which perks are matched, selectable (alternate options rolled), or missing:
-- **Matched Perks** (`Green`): Currently active perks that match the spreadsheet god roll.
-- **Selectable Perks** (`Dashed Blue`): Recommended perks rolled on the weapon but not currently active.
-- **Missing Perks** (`Muted Red`): Desired perks absent on the current roll.
+### Firefox / Firefox Nightly
 
-<img width="307" height="534" alt="Recommended Perks Checklist" src="https://github.com/user-attachments/assets/db9f72ac-a60f-4009-ab32-20b18e395e74" />
+The GitHub Firefox build is **unsigned** and supports temporary developer loading:
 
-###  2-Tier Weapon Grading System
-Optionally enable **2-Tier Badge Mode** in your settings to display both the archetype meta viability and the specific roll quality at a glance:
-- **First Letter**: Archetype meta tier on the master list (`S`, `A`, `B`, `C`, `D`, `F`).
-- **Remaining Letters**: Specific roll accuracy grade (`S+`, `S`, `A`, `B`...).
-  - *Example: **BS+** indicates a B-Tier archetype with a perfect S+ god roll.*
+1. Open `about:debugging#/runtime/this-firefox`.
+2. Click **Load Temporary Add-on…**.
+3. Select `manifest.json` in the extracted **firefox** folder.
+4. Reload DIM. Open **Roll Lens** at the bottom right.
 
-<img width="203" height="247" alt="2-Tier Badge Demo" src="https://github.com/user-attachments/assets/26f87796-8183-4c45-9461-8b4710365f8f" />
+Firefox removes temporary add-ons when it restarts. A persistent install requires Mozilla signing; this project is not yet published on Mozilla Add-ons. There is no need to disable Firefox signature checks.
 
-###  Floating Aegis Database Explorer
-Click the floating action button (FAB) in the bottom-right corner of DIM to open the slide-out catalog:
-- **Filter Controls**: Filter by weapon category, frame archetype, element damage type, and activity drop source.
-- **Vault Highlighting**: Click **"Filter in Vault"** to immediately highlight matching items in your DIM vault.
-- **Destiny.Report Integration**: Click **"Destiny.Report"** to view in-depth community stats and usage data.
+### Chrome / Chromium / Brave / Edge
 
-<img width="359" height="925" alt="Aegis Database Explorer" src="https://github.com/user-attachments/assets/66f301d7-0b78-40d7-8253-4ea8fae9029e" />
+1. Open the browser’s extensions page and enable **Developer mode**.
+2. Click **Load unpacked** and select the extracted **chromium** folder.
+3. Reload DIM.
 
----
+DIM stable and beta are supported. Winnower compatibility is inherited from upstream. The new dashboard is intended for DIM. This project is independent of Bungie, DIM, Maxeption and the recommendation authors.
 
-## ⌨️ DIM Vault Search Filter Shortcuts
+## Develop
 
-Type these directly into the DIM search bar:
+Use Node **24 LTS** or another Vite 8 supported version.
 
-| Search Filter | Function |
-|---|---|
-| `aegis:god` | Highlights all S and S+ spreadsheet god rolls |
-| `aegis:upgrade` | Highlights weapons with better recommended perks available to select |
-| `aegis:p:s+` | Filters by perk roll grade (`s+`, `s`, `a`, `b`, `c`, `d`, `f`) |
-| `aegis:w:s` | Filters by weapon archetype tier (`s`, `a`, `b`, `c`, `d`, `f`) |
-| `aegis:a:2p:s` | Filters armor by 2-piece set bonus grade (`s`, `a`, `b`...) |
-| `aegis:a:4p:a` | Filters armor by 4-piece set bonus grade |
-| `aegis:s:raid` | Filters weapons by activity drop source (e.g. `raid`, `dungeon`, `trials`, `crucible`) |
-| `aegis:p:>=b` | Supports comparison operators (`>=`, `>`, `<=`, `<`) for rolls and tiers |
-
----
-
-##  Building from Source (Developers)
-
-```bash
-# Clone the repository
-git clone https://github.com/Maxeption/dim-aegis-overlay.git
-cd dim-aegis-overlay
-
-# Install dependencies
-npm install
-
-# Compile TypeScript and package extension bundles
+```sh
+npm ci
+npm test
 npm run build:all
+npm run test:integration
+node scripts/verify-package.mjs
 ```
 
-The compiled extension and release zips will be generated inside the `/dist` directory. Open `chrome://extensions/` and select **Load unpacked** pointing to `/dist`.
+- `dist/`: unpacked Chromium extension.
+- `releases/firefox/`: Firefox extension with the correct manifest.
+- `releases/chromium/`: Chromium extension.
+- `releases/*.zip`: separately packaged browser builds with nested paths preserved.
 
----
+Run `npm run dev` and open `/preview.html` for an interactive synthetic inventory using the same verdict engine and UI. This demo does not log into Bungie or read your vault.
 
-##  Credits & Acknowledgments
+## Validation and limits
 
-- **Revadike/aegis-dim** – The "Recommended Perks" card overlay and category comparison layout were inspired by the original [Revadike/aegis-dim](https://github.com/Revadike/aegis-dim) project. Huge thanks to Revadike for their awesome design concepts!
-- **Aegis** – For their comprehensive [Destiny 2: Endgame PvE Analysis Spreadsheet](https://docs.google.com/spreadsheets/d/1JM-0SlxVDAi-C6rGVlLxa-J1WGewEeL8Qvq4htWZHhY/).
-- **Finnald (Pride Eternal)** – For their top-tier [PvP God Rolls & Meta Spreadsheet](https://docs.google.com/spreadsheets/d/1TVgtTRWNGEPi6OMlTLxXFSKUTi_ycwykhwuw8EW_jJ0/).
-- **LowCo & Azra** – For their comprehensive [Armor Set Bonuses Spreadsheet](https://docs.google.com/spreadsheets/d/14LnzOhmeXzKaSV3OR35pQJkclg6vLC4YmKtlKTctY3o/).
+Unit/DOM tests cover activity separation, swaps, strict matching, fixed/unrated weapons, HTML escaping, filters, search and dialog focus. Built-bundle integration tests check real bundled recommendation parsing, mutation-triggered rescoring, badge deduplication, missing-source isolation and failed-sync cache retention. Package validation checks both manifests and every required ZIP path. Browser QA covers the desktop/narrow layouts and actionable swap details.
 
----
+The Firefox release was also temporarily loaded and tested against a signed-in DIM inventory on October 6, 2026, in Firefox Nightly 157.0a1. Live tile badges, the dashboard, activity filters, item explanations and perk-swap guidance were checked. See [validation](docs/VALIDATION.md) for the scope. The DIM bridge reads React item data and is inherited from upstream; DIM changes can break it. Bundled source data comes from the upstream snapshot; a successful refresh means the cache was retrieved, not that its author has revised every weapon for the latest sandbox.
 
-##  Support
+Custom wishlists hosted at `raw.githubusercontent.com` work with the supplied permissions. Other domains need an explicit host-permission change. [Privacy](PRIVACY.md) explains local data and network use.
 
-If you enjoy the extension and would like to support me, feel free to drop a tip on [Ko-fi](https://ko-fi.com/dilligafm8). Thank you so much!
+## Credits and license
 
----
+**Thanks again to [Maxeption](https://github.com/Maxeption)** and all upstream contributors. Recommendations and supporting work are credited to Aegis, Finnald, LowCo, Azra, Revadike, MrCharles, DIM and Bungie in [CREDITS.md](CREDITS.md). Third-party notices remain included in the extension.
 
-##  License
-
-MIT
+[MIT](LICENSE), following the license declared by the original project. Game assets and bundled community data retain their respective attribution.

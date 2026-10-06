@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "DIM Aegis & PvP Roll Overlay",
-  "version": "1.9.5",
-  "description": "Display Aegis wishlist rankings directly inside Destiny Item Manager (DIM).",
+  "name": "DIM Roll Lens",
+  "version": "2.0.0",
+  "description": "Know immediately if your weapon is a PvE, PvP or dual-purpose god roll, with exact perk matches and swaps.",
   "permissions": [
     "storage",
     "alarms",
@@ -14,26 +14,28 @@
     "https://app.destinyitemmanager.com/*",
     "https://beta.destinyitemmanager.com/*",
     "https://www.light.gg/*",
-    "https://*/*",
-    "http://*/*"
+    "https://docs.google.com/*",
+    "https://*.googleusercontent.com/*",
+    "https://winnower.garden/*"
   ],
   "background": {
-    "scripts": ["background.js"]
+    "scripts": [
+      "background.js"
+    ]
   },
   "icons": {
-    "16": "Pouka_Logo_64.png",
-    "32": "Pouka_Logo_64.png",
-    "48": "Pouka_Logo_64.png",
-    "64": "Pouka_Logo_64.png",
-    "128": "Pouka_Logo_2000.png"
+    "16": "icons/lens-16.png",
+    "32": "icons/lens-32.png",
+    "48": "icons/lens-48.png",
+    "128": "icons/lens-128.png"
   },
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
-      "16": "Pouka_Logo_64.png",
-      "32": "Pouka_Logo_64.png",
-      "48": "Pouka_Logo_64.png",
-      "128": "Pouka_Logo_2000.png"
+      "16": "icons/lens-16.png",
+      "32": "icons/lens-32.png",
+      "48": "icons/lens-48.png",
+      "128": "icons/lens-128.png"
     }
   },
   "content_scripts": [
@@ -58,7 +60,8 @@
         "content.js"
       ],
       "css": [
-        "styles.css"
+        "styles.css",
+        "roll-lens.css"
       ],
       "world": "ISOLATED",
       "run_at": "document_idle"
@@ -101,7 +104,7 @@
   ],
   "browser_specific_settings": {
     "gecko": {
-      "id": "dim-aegis-overlay@maxeption.github.io",
+      "id": "dim-roll-lens@moriz82.github.io",
       "strict_min_version": "140.0",
       "data_collection_permissions": {
         "required": [

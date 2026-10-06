@@ -601,6 +601,7 @@ async function fetchWithTimeout(url: string, ms = 8000): Promise<Response> {
  * with graceful fallback to live spreadsheet extraction if CDN is unavailable.
  */
 async function fetchAndCacheAegisSheet(): Promise<{ success: boolean; error?: string }> {
+  await chrome.storage.local.set({ rollLensSyncing: true, rollLensSyncError: null });
   try {
     let aegisSheetDbPvE: AegisSheetDatabase | null = null;
     let aegisSheetDbPvP: AegisSheetDatabase | null = null;
@@ -649,7 +650,11 @@ async function fetchAndCacheAegisSheet(): Promise<{ success: boolean; error?: st
     }
 
     const storage = await chrome.storage.local.get(['aegisMode']);
-    const aegisMode = storage.aegisMode || 'pve';
+    if (!aegisSheetDbPvE?.weapons || !Object.keys(aegisSheetDbPvE.weapons).length ||
+        !aegisSheetDbPvP?.weapons || !Object.keys(aegisSheetDbPvP.weapons).length) {
+      throw new Error('A community source returned no weapons. Previous ratings retained.');
+    }
+    const aegisMode = storage.aegisMode || 'both';
     const activeDb = aegisMode === 'pvp' ? aegisSheetDbPvP : aegisSheetDbPvE;
     const activeShopping = aegisMode === 'pvp' ? (aegisShoppingDbPvP || aegisShoppingDbPvE) : (aegisShoppingDbPvE || aegisShoppingDbPvP);
 
@@ -661,12 +666,15 @@ async function fetchAndCacheAegisSheet(): Promise<{ success: boolean; error?: st
       aegisShoppingDbPvP,
       aegisShoppingDb: activeShopping,
       aegisSheetLastSync: Date.now(),
+      rollLensSyncing: false,
+      rollLensSyncError: null,
     });
 
     return { success: true };
   } catch (err: any) {
     const errMsg = err.message || String(err);
     console.error('DIM Aegis Overlay: Failed to fetch/cache Aegis spreadsheet:', errMsg);
+    await chrome.storage.local.set({ rollLensSyncing: false, rollLensSyncError: errMsg });
     return { success: false, error: errMsg };
   }
 }
@@ -700,7 +708,18 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 });
 
 // Run sync immediately on installation
-chrome.runtime.onInstalled.addListener(() => {
+chrome.runtime.onInstalled.addListener(async () => {
+  // Seed both curated sources locally before networking, so first load works offline.
+  const existing = await chrome.storage.local.get(['aegisSheetDbPvE', 'aegisSheetDbPvP']);
+  if (!existing.aegisSheetDbPvE || !existing.aegisSheetDbPvP) {
+    const [pve, pvp] = await Promise.all([
+      fetch(chrome.runtime.getURL('data/pve-database.json')).then(r => r.json()),
+      fetch(chrome.runtime.getURL('data/pvp-database.json')).then(r => r.json()),
+    ]);
+    await chrome.storage.local.set({ aegisSheetDbPvE: pve, aegisSheetDbPvP: pvp,
+      aegisSheetDb: pve, aegisShoppingDbPvE: pve.shopping, aegisShoppingDbPvP: pvp.shopping,
+      aegisShoppingDb: pve.shopping, aegisMode: 'both', aegisWelcomeDismissed: true });
+  }
   console.log('DIM Aegis Overlay installed. Performing initial data sync...');
   syncAllData();
   checkForExtensionUpdates().catch(() => {});
@@ -888,7 +907,7 @@ function isNewerVersion(latest: string, current: string): boolean {
  */
 async function checkForExtensionUpdates() {
   console.log('DIM Aegis Overlay: Checking for updates on GitHub...');
-  const repoUrl = 'https://raw.githubusercontent.com/Maxeption/dim-aegis-overlay/master/package.json';
+  const repoUrl = 'https://raw.githubusercontent.com/Moriz82/dim-roll-lens/main/package.json';
   try {
     const response = await fetch(repoUrl);
     if (!response.ok) {
@@ -915,4 +934,3 @@ async function checkForExtensionUpdates() {
     console.error('DIM Aegis Overlay: Failed to check for extension updates:', err);
   }
 }
-

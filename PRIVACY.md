@@ -1,52 +1,16 @@
-# Privacy Policy for DIM Aegis & PvP Roll Overlay
+# DIM Roll Lens privacy
 
-**Effective Date:** August 17, 2026  
-**Last Updated:** August 17, 2026
+Updated October 6, 2026.
 
-## Overview
-**DIM Aegis & PvP Roll Overlay** is an open-source browser extension designed to display community weapon rankings and perk recommendations directly inside Destiny Item Manager (DIM) and Winnower. 
+Roll Lens reads weapon names, perk sockets, masterwork data, and item instance identifiers already loaded in DIM. Matching and dashboard rendering take place in your browser. Local extension storage contains public recommendation caches, settings, and optional Light.gg grades or chase-list preferences inherited from upstream. The dashboard does not upload your inventory. Roll Lens adds no analytics, telemetry, or Bungie login flow, and never moves, equips, locks, tags, or dismantles items.
 
-We respect your privacy. This extension operates entirely on your local machine and **does not collect, store, transmit, or sell any personal user data**.
+Public data downloads contact GitHub and Google Sheets. Those hosts receive normal network metadata such as your IP address. Source links open the source website. Optional Light.gg synchronization in advanced settings opens its Roll Appraiser in a browser tab and reads grades provided by that site; Light.gg has its own account and privacy practices. Roll Lens does not extract DIM or Bungie authentication tokens.
 
----
+Permissions:
 
-## 1. Information Collection and Usage
-- **No Personal Data Collected:** The extension does not collect any personally identifiable information (PII), such as names, email addresses, IP addresses, location data, browsing history, or payment information.
-- **No Tracking or Analytics:** There are no embedded tracking cookies, telemetry tools, or third-party analytics libraries included within the extension.
-- **No User Account Required:** The extension does not require authentication or user accounts to function.
+- `storage` and `unlimitedStorage`: local public databases and preferences.
+- `alarms`: periodic community-data refresh.
+- `tabs`: inherited Light.gg sync tab management and DIM messaging.
+- Host permissions: DIM stable/beta, Winnower, Light.gg, GitHub raw content, Google Docs and its spreadsheet-content hosts. General access to all websites has been removed. Custom wishlists on other hosts may need an explicitly reviewed permission change; GitHub raw wishlists work with the supplied permissions.
 
----
-
-## 2. Permissions & Data Storage
-The extension requests standard browser permissions solely for its core features:
-- **`storage` / `unlimitedStorage`**: Used strictly on your local device to cache public weapon tier lists, perk spreadsheets, and your personal UI preferences (such as language, overlay positioning, and display styles). This data never leaves your browser.
-- **`alarms`**: Used to schedule automatic background synchronization of public community spreadsheets and wishlists every 24 hours.
-- **`tabs`**: Used to detect open Destiny Item Manager (DIM) tabs and broadcast setting updates so changes reflect immediately without requiring a manual page refresh.
-- **Host Permissions (`destinyitemmanager.com`, `light.gg`, `docs.google.com`, `raw.githubusercontent.com`)**: Required to inject visual overlay badges on DIM item tiles and download public spreadsheet rankings.
-
----
-
-## 3. Third-Party Services
-The extension communicates with the following public endpoints strictly to retrieve static game rankings and spreadsheet data:
-- **Google Sheets API / Google Docs**: To retrieve public weapon rankings authored by community theorycrafters (Aegis, Finnald).
-- **GitHub (`raw.githubusercontent.com`)**: To retrieve public community wishlist definitions.
-- **Light.gg**: To synchronize public weapon roll appraisals for offline viewing.
-
-No user identifiers or personal data are transmitted during these requests.
-
----
-
-## 4. Changes to This Privacy Policy
-We may update this Privacy Policy from time to time. Any updates will be posted to this repository with a revised "Last Updated" date.
-
----
-
-## 5. Open Source & Source Code
-This extension is free and open source. You can inspect the entire source code at:  
-[https://github.com/Maxeption/dim-aegis-overlay](https://github.com/Maxeption/dim-aegis-overlay)
-
----
-
-## 6. Contact
-If you have any questions or feedback regarding this Privacy Policy, please open an issue on GitHub:  
-[https://github.com/Maxeption/dim-aegis-overlay/issues](https://github.com/Maxeption/dim-aegis-overlay/issues)
+Remove the extension to remove its extension storage. Existing DIM data remains managed by DIM. Inspect the [source](https://github.com/Moriz82/dim-roll-lens) or report a privacy issue there.

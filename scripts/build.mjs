@@ -30,12 +30,19 @@ const manifestWeaponsSource = path.join(root, 'data', 'manifest-weapons.json');
 if (fs.existsSync(manifestWeaponsSource)) {
   fs.copyFileSync(manifestWeaponsSource, path.join(dataDir, 'manifest-weapons.json'));
 }
+for (const filename of ['pve-database.json', 'pvp-database.json']) {
+  fs.copyFileSync(path.join(root, 'data', filename), path.join(dataDir, filename));
+}
+for (const filename of ['LICENSE', 'CREDITS.md']) {
+  fs.copyFileSync(path.join(root, filename), path.join(distDir, filename));
+}
 
 const entries = {
   background: path.join(root, 'src/background.ts'),
   content: path.join(root, 'src/content.ts'),
   'main-world-content': path.join(root, 'src/main-world-content.ts'),
   popup: path.join(root, 'src/popup.ts'),
+  'roll-lens-popup': path.join(root, 'src/roll-lens-popup.ts'),
   'lightgg-content': path.join(root, 'src/lightgg-content.ts'),
   'lightgg-main-world': path.join(root, 'src/lightgg-main-world.ts'),
 };
@@ -58,7 +65,6 @@ for (const [name, entryPath] of Object.entries(entries)) {
           format: 'iife',
           name: `aegis_${name.replace(/[^a-zA-Z0-9_]/g, '_')}`,
           entryFileNames: `${name}.js`,
-          inlineDynamicImports: true,
         },
       },
     },

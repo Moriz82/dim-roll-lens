@@ -1,15 +1,16 @@
 {
-  "name": "dim-aegis-overlay",
-  "version": "1.9.5",
-  "description": "DIM extension for Aegis weapon tiers and roll appraisals",
+  "name": "dim-roll-lens",
+  "version": "2.0.0",
+  "description": "Instant PvE, PvP and dual-purpose god-roll verdicts inside Destiny Item Manager",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host 127.0.0.1",
     "build": "tsc && node scripts/build.mjs",
-    "test": "node tests/item-queue.test.cjs && node tests/dom-utils.test.cjs && node tests/grading.test.cjs && node tests/i18n.test.cjs",
+    "test": "node tests/item-queue.test.cjs && node tests/dom-utils.test.cjs && node tests/grading.test.cjs && node tests/i18n.test.cjs && node tests/roll-lens.test.cjs && node tests/roll-lens-ui.test.cjs",
     "package": "node scripts/package.mjs",
     "build:all": "tsc && node scripts/build.mjs && node scripts/package.mjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:integration": "node tests/content-integration.test.cjs && node tests/background-integration.test.cjs"
   },
   "dependencies": {
     "culori": "4.0.2"
@@ -18,7 +19,13 @@
     "@types/chrome": "^0.0.268",
     "@types/culori": "4.0.1",
     "@types/node": "^20.11.0",
+    "jsdom": "^26.1.0",
     "typescript": "^5.3.3",
-    "vite": "^5.0.11"
+    "vite": "^8.3.3"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Moriz82/dim-roll-lens.git"
   }
 }

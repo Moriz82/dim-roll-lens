@@ -214,7 +214,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Set Aegis Mode (PvE vs PvP) segmented control
-        const aegisModeVal = res.aegisMode || 'pve';
+        const aegisModeVal = res.aegisMode || 'both';
         const aegisModeSegmented = document.getElementById('aegis-mode-segmented');
         if (aegisModeSegmented) {
           aegisModeSegmented.querySelectorAll('button').forEach(btn => {

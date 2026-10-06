@@ -6,6 +6,8 @@ import { renderLocalizedName, renderLocalizedWeaponReference } from './localized
 import { safeSetInnerHTML } from './dom-utils';
 import { masterworkMatches } from './masterwork';
 import { measurePerkCardWidth } from './card-width';
+import type { WeaponEvaluationPayload } from './types';
+import { isLensEnabled, renderLensCard } from './roll-lens-ui';
 
 
 
@@ -439,6 +441,7 @@ export function showTooltip(
   shoppingItem?: AegisShoppingItem | null,
   shoppingAlt?: { primaryName: string; role: string; priority: string; priorityNum: number } | null,
   options?: {
+    lensData?: WeaponEvaluationPayload;
     compactPerksMatrix?: boolean;
     autoMaxHeight?: boolean;
     tooltipWidthMode?: 'auto' | 'fixed';
@@ -447,6 +450,13 @@ export function showTooltip(
   }
 ) {
   const tooltip = initTooltip();
+  if (isLensEnabled() && !sheetArmor && options?.lensData) {
+    tooltip.classList.add('rl-hover-card');
+    safeSetInnerHTML(tooltip, renderLensCard(options.lensData));
+    positionTooltip(target, tooltip); tooltip.classList.remove('hidden');
+    return;
+  }
+  tooltip.classList.remove('rl-hover-card');
   const isLightGGMode = !!isLightGG;
   const isCompactMatrix = options?.compactPerksMatrix === true;
   const isAutoMaxHeight = options?.autoMaxHeight !== false;

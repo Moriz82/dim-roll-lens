@@ -12,6 +12,7 @@ import { renderLocalizedName, refreshLocalizedNames } from './localized-display'
 import { outermostElements, safeSetInnerHTML, withoutTileReorders } from './dom-utils';
 import { applyBadgePresentation, badgeCategory, normalizeBadgeSize, normalizeBadgeVisibility } from './badge-presentation';
 import { measurePerkCardWidth } from './card-width';
+import { applyLens, configureLens, initLensDashboard, isLensEnabled, updateLensStatus } from './roll-lens-ui';
 
 /** Strongly typed, GC-safe storage for weapon/armor evaluation data attached to DOM tiles */
 export const weaponDataMap = new WeakMap<HTMLElement, WeaponEvaluationPayload>();
@@ -27,6 +28,33 @@ const inventoryEvaluations = new Map<string, {
 const winnowerPinBoundBadges = new WeakSet<HTMLElement>();
 const hoverBoundItems = new WeakSet<HTMLElement>();
 const boundPopupTitles = new WeakSet<HTMLElement>();
+
+chrome.storage.local.get(['rollLensEnabled', 'rollLensGlow', 'rollLensRule', 'aegisSheetLastSync', 'rollLensSyncing', 'rollLensSyncError'], res => {
+  configureLens({ enabled: res.rollLensEnabled !== false, glow: res.rollLensGlow !== false,
+    rule: res.rollLensRule === 'complete' ? 'complete' : 'traits' });
+  updateLensStatus({ lastSync: res.aegisSheetLastSync, syncing: res.rollLensSyncing, error: res.rollLensSyncError });
+  initLensDashboard(el => weaponDataMap.get(el));
+  // The settings callback can run after the existing initial inventory pass.
+  document.querySelectorAll<HTMLElement>('[data-aegis-item-hash]').forEach(el => {
+    const data = weaponDataMap.get(el); if (data) applyLens(el, data);
+  });
+});
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== 'local') return;
+  if (changes.aegisSheetLastSync || changes.rollLensSyncing || changes.rollLensSyncError) {
+    chrome.storage.local.get(['aegisSheetLastSync', 'rollLensSyncing', 'rollLensSyncError'], res =>
+      updateLensStatus({ lastSync: res.aegisSheetLastSync, syncing: res.rollLensSyncing, error: res.rollLensSyncError }));
+  }
+  if (!changes.rollLensEnabled && !changes.rollLensGlow && !changes.rollLensRule) return;
+  const update: Parameters<typeof configureLens>[0] = {};
+  if (changes.rollLensEnabled) update.enabled = changes.rollLensEnabled.newValue !== false;
+  if (changes.rollLensGlow) update.glow = changes.rollLensGlow.newValue !== false;
+  if (changes.rollLensRule) update.rule = changes.rollLensRule.newValue === 'complete' ? 'complete' : 'traits';
+  configureLens(update);
+  document.querySelectorAll<HTMLElement>('[data-aegis-item-hash]').forEach(el => {
+    const data = weaponDataMap.get(el); if (data) applyLens(el, data);
+  });
+});
 
 // Winnower (winnower.garden) cooperates with this extension. It writes the
 // data-aegis-* attributes itself (no main-world script there) and provides an
@@ -243,7 +271,7 @@ let aegisFadeHover = false;
 let aegisGradeDisplayMode: 'equipped' | 'dual' | 'potential' = 'equipped';
 let aegisHoverEnabled = true;
 let aegisArmorSource = 'lowco';
-let aegisMode: 'pve' | 'pvp' | 'both' = 'pve';
+let aegisMode: 'pve' | 'pvp' | 'both' = 'both';
 let gradeSettings = defaultGradeSettings();
 let storedGradeSettings: unknown;
 let gradePalette: unknown;
@@ -689,6 +717,7 @@ function setupRegistryObserver() {
               data.shoppingItem,
               data.shoppingAlt,
               {
+                lensData: data,
                 compactPerksMatrix: aegisCompactPerksMatrix,
                 autoMaxHeight: aegisAutoMaxHeight,
                 tooltipWidthMode: aegisTooltipWidthMode,
@@ -3784,7 +3813,7 @@ chrome.storage.local.get(['wishlistData', 'enhancedToNormal', 'scoringSource', '
   aegisLayoutSide = res.aegisLayoutSide || 'side';
   aegisPerkOrder = res.aegisPerkOrder || 'sheet';
   aegisDbMode = res.aegisDbMode || 'both';
-  aegisMode = res.aegisMode || 'pve';
+  aegisMode = res.aegisMode || 'both';
   aegisTwoTier = res.aegisTwoTier || false;
   aegisBadgeColor = resolveBadgeColor(res.aegisBadgeColor, res.aegisTwoTierColors);
   aegisTileGlow = resolveTileGlow(res.aegisTileGlow, res.aegisMaxTierGlow);
@@ -3945,7 +3974,7 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
       changed = true;
     }
     if (changes.aegisMode) {
-      aegisMode = changes.aegisMode.newValue || 'pve';
+      aegisMode = changes.aegisMode.newValue || 'both';
       const activeShopping = aegisMode === 'pvp'
         ? (aegisShoppingDbPvP || aegisShoppingDbPvE)
         : (aegisShoppingDbPvE || aegisShoppingDbPvP);
@@ -4144,7 +4173,7 @@ const TOOLTIP_SCROLL_SUPPRESS_MS = 150;
  */
 function showTooltipForElement(dataEl: HTMLElement, anchor: HTMLElement): boolean {
   const data = weaponDataMap.get(dataEl);
-  if (!data || !data.result || !data.result.grade) return false;
+  if (!data || !data.result || (!data.result.grade && !isLensEnabled())) return false;
 
   showTooltip(
     anchor,
@@ -4165,6 +4194,7 @@ function showTooltipForElement(dataEl: HTMLElement, anchor: HTMLElement): boolea
     data.shoppingItem,
     data.shoppingAlt,
     {
+      lensData: data,
       compactPerksMatrix: aegisCompactPerksMatrix,
       autoMaxHeight: aegisAutoMaxHeight,
       tooltipWidthMode: aegisTooltipWidthMode,
@@ -5675,8 +5705,8 @@ function evaluateWeapon(
       };
     }
   } else if (aegisMode === 'both') {
-    sheetWeaponPvE = findAegisWeapon(weaponName, perksMap, activeHashes, elText, itemHash, aegisSheetDbPvE);
-    sheetWeaponPvP = findAegisWeapon(weaponName, perksMap, activeHashes, elText, itemHash, aegisSheetDbPvP);
+    sheetWeaponPvE = aegisSheetDbPvE ? findAegisWeapon(weaponName, perksMap, activeHashes, elText, itemHash, aegisSheetDbPvE) : null;
+    sheetWeaponPvP = aegisSheetDbPvP ? findAegisWeapon(weaponName, perksMap, activeHashes, elText, itemHash, aegisSheetDbPvP) : null;
 
     const availablePerks = sheetWeaponPvE && sheetWeaponPvP &&
       !sheetWeaponPvE.exoticViability && sheetWeaponPvE.source !== 'Exotic' &&
@@ -5847,6 +5877,21 @@ function evaluateWeapon(
       } else {
         bestAlternative = `${bestW.name} (${bestW.tier} #${bestW.rank})`;
       }
+    }
+  }
+
+  // Roll Lens always evaluates both activities, independent of legacy badge mode.
+  if (aegisMode !== 'both' || scoringSource === 'lightgg') {
+    sheetWeaponPvE = aegisSheetDbPvE ? findAegisWeapon(weaponName, perksMap, activeHashes, elText, itemHash, aegisSheetDbPvE) : null;
+    sheetWeaponPvP = aegisSheetDbPvP ? findAegisWeapon(weaponName, perksMap, activeHashes, elText, itemHash, aegisSheetDbPvP) : null;
+    const available = prepareAvailablePerks(perksMap, activeHashes);
+    if (sheetWeaponPvE) {
+      const score = scoreSheetWeapon(sheetWeaponPvE, perksMap, activeHashes, 'pve', equippedMasterwork, available);
+      sheetPerksPvE = score.sheetPerks; pveResult = score.result;
+    }
+    if (sheetWeaponPvP) {
+      const score = scoreSheetWeapon(sheetWeaponPvP, perksMap, activeHashes, 'pvp', equippedMasterwork, available);
+      sheetPerksPvP = score.sheetPerks; pvpResult = score.result;
     }
   }
 
@@ -6362,6 +6407,14 @@ function processElement(el: HTMLElement) {
     }
   } catch (err) {
     console.error('Error processing element in content script:', err);
+  }
+  const lensData = weaponDataMap.get(el);
+  if (lensData) {
+    applyLens(el, lensData);
+    if (isLensEnabled() && !el.closest('.item-popup, [class*="ItemPopup"], [class*="item-popup"], .armory') && !hoverBoundItems.has(el)) {
+      el.addEventListener('mouseenter', handleMouseEnter); el.addEventListener('mouseleave', handleMouseLeave);
+      hoverBoundItems.add(el); el.setAttribute('data-aegis-listeners', 'true');
+    }
   }
 }
 
