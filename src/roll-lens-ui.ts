@@ -29,7 +29,7 @@ const previous = new WeakMap<HTMLElement, string>();
 export function applyLens(el: HTMLElement, data: WeaponEvaluationPayload): void {
   if (!settings.enabled || data.sheetArmor || el.dataset.aegisItemType === 'armor') {
     el.querySelectorAll('.rl-badge, .rl-item-card').forEach(node => node.remove());
-    delete el.dataset.rlState; delete el.dataset.rlUsage; delete el.dataset.rlGlow;
+    delete el.dataset.rlState; delete el.dataset.rlUsage; delete el.dataset.rlPotential; delete el.dataset.rlGlow;
     previous.delete(el); return;
   }
   const verdict = evaluateLens(data, settings.rule);
@@ -37,7 +37,8 @@ export function applyLens(el: HTMLElement, data: WeaponEvaluationPayload): void 
   const popup = isPopup ? el : el.closest('.item-popup, [class*="item-popup"], [class*="ItemPopup"]');
   const signature = JSON.stringify([data.name, verdict, settings, !!popup]);
   // Skip equivalent writes: DIM observes its own DOM and reprocessing must settle.
-  if (previous.get(el) === signature && el.querySelector(popup ? '.rl-item-card' : '.rl-badge')) return;
+  if (previous.get(el) === signature && (popup ? el.querySelector('.rl-item-card') :
+      !!el.querySelector('.rl-badge') === !!verdict.badge)) return;
   previous.set(el, signature);
   el.dataset.rlState = verdict.state;
   el.dataset.rlUsage = verdict.usage;
@@ -55,14 +56,15 @@ export function applyLens(el: HTMLElement, data: WeaponEvaluationPayload): void 
   } else {
     const target = el.querySelector<HTMLElement>('[data-aegis-badge-slot]') || el;
     let badge = target.querySelector<HTMLElement>('.rl-badge');
+    if (!verdict.badge) { badge?.remove(); return; }
     if (!badge) {
       badge = document.createElement('span'); badge.className = 'rl-badge';
       badge.setAttribute('role', 'img'); target.append(badge);
     }
-    badge.dataset.state = verdict.state;
-    badge.dataset.usage = verdict.usage !== 'none' ? verdict.usage : verdict.potentialUsage;
+    badge.dataset.state = verdict.usage !== 'none' ? 'god' : 'near';
+    badge.dataset.usage = verdict.usage !== 'none' ? verdict.usage : verdict.nearUsage;
     badge.textContent = verdict.badge;
-    badge.title = `${verdict.label}. PvE: ${verdict.pve.label}. PvP: ${verdict.pvp.label}. Open Roll Lens for perk details.`;
+    badge.title = `${verdict.badge}. PvE: ${verdict.pve.distance === 1 ? 'One perk from god roll' : verdict.pve.label}. PvP: ${verdict.pvp.distance === 1 ? 'One perk from god roll' : verdict.pvp.label}. Open Roll Lens for perk details.`;
     badge.setAttribute('aria-label', badge.title);
   }
 }

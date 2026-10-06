@@ -1,6 +1,6 @@
 :root { --rl-bg:#10151e; --rl-panel:#161e2a; --rl-line:#2c3747; --rl-text:#eef2f8; --rl-muted:#a7b4c8; --rl-e:#71e2bf; --rl-p:#ffa5ba; --rl-gold:#f4d38a; }
 [data-roll-lens="on"] [data-rl-state] { position:relative; }
-[data-roll-lens="on"] [data-rl-state] > .aegis-badge, [data-roll-lens="on"] [data-rl-state] .aegis-badge { visibility:hidden!important; }
+[data-roll-lens="on"] .aegis-badge { visibility:hidden!important; }
 [data-roll-lens="on"] [data-rl-state].aegis-gold-glow, [data-roll-lens="on"] [data-rl-state] .aegis-gold-glow { box-shadow:none!important; animation:none!important; }
 [data-roll-lens="on"] [data-rl-state].aegis-gold-glow::after, [data-roll-lens="on"] [data-rl-state] .aegis-gold-glow::after,
 [data-roll-lens="on"] .item-drag-container:has([data-rl-state])::before, [data-roll-lens="on"] .item-drag-container:has([data-rl-state])::after { display:none!important; }
@@ -10,8 +10,8 @@
 .rl-badge[data-state="god"] { background:#302715f5; color:var(--rl-gold); border-color:#ac8c47; }
 .rl-badge[data-usage="pve"][data-state="god"] { color:var(--rl-e); background:#102d28f5; border-color:#3c967e; }
 .rl-badge[data-usage="pvp"][data-state="god"] { color:var(--rl-p); background:#321c29f5; border-color:#aa5974; }
-.rl-badge[data-state="swap"] { color:#98caff; border-color:#547faa; }
-.rl-badge[data-state="unknown"],.rl-badge[data-state="fixed"] { opacity:.82; font-size:8px; }
+.rl-badge[data-state="near"] { color:#98caff; border-color:#547faa; }
+.rl-badge[data-state="near"][data-usage="both"] { font-size:8px; letter-spacing:0; }
 .rl-launcher { position:fixed; right:22px; bottom:86px; z-index:9990; display:flex; align-items:center; gap:8px; padding:11px 16px; border:1px solid #708094; border-radius:12px; box-shadow:0 8px 35px #0006; background:#111d2df5; color:var(--rl-text); cursor:pointer; font:700 13px system-ui,sans-serif; }
 .rl-mark { color:var(--rl-gold); font-size:25px; line-height:1; }
 .rl-launcher:hover { background:#23334a; border-color:var(--rl-gold); }

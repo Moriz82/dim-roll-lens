@@ -24,6 +24,7 @@ export interface ActivityVerdict {
   ownedTraits: number;
   activeMatches: number;
   requiredCount: number;
+  distance: number | null;
   perfect: boolean;
   swaps: string[];
 }
@@ -32,6 +33,7 @@ export interface LensVerdict {
   pvp: ActivityVerdict;
   usage: LensUsage;
   potentialUsage: LensUsage;
+  nearUsage: LensUsage;
   label: string;
   badge: string;
   state: LensState;
@@ -58,7 +60,7 @@ export function activityVerdict(
     source: activity === 'pve' ? 'Aegis' : 'Finnald',
     sourceUrl: `https://docs.google.com/spreadsheets/d/${activity === 'pve' ? '1JM-0SlxVDAi-C6rGVlLxa-J1WGewEeL8Qvq4htWZHhY' : '1TVgtTRWNGEPi6OMlTLxXFSKUTi_ycwykhwuw8EW_jJ0'}/edit`,
     tier: sheet?.tier || '', notes: sheet?.notes || '', slots: [],
-    activeTraits: 0, ownedTraits: 0, activeMatches: 0, requiredCount: 0, perfect: false, swaps: [],
+    activeTraits: 0, ownedTraits: 0, activeMatches: 0, requiredCount: 0, distance: null, perfect: false, swaps: [],
   };
   if (!sheet) return verdict;
   if (sheet.exoticViability || sheet.source === 'Exotic') {
@@ -94,6 +96,7 @@ export function activityVerdict(
   if (traits.some(s => s.status === 'unspecified') || !all.length) return verdict;
   verdict.perfect = required.every(s => s.status === 'active');
   const target = rule === 'complete' ? required : traits;
+  verdict.distance = target.filter(s => s.status !== 'active').length;
   const activeGod = target.every(s => s.status === 'active');
   const ownedGod = target.every(s => s.status === 'active' || s.status === 'selectable');
   verdict.state = activeGod ? 'god' : ownedGod ? 'swap' : verdict.ownedTraits === 2 ? 'good' : 'partial';
@@ -107,11 +110,13 @@ export function evaluateLens(data: WeaponEvaluationPayload, rule: LensRule = 'tr
   const pvp = activityVerdict('pvp', data.sheetWeaponPvP, data.sheetPerksPvP, data.equippedMasterwork || '', rule);
   const usage = usageFor(pve.state === 'god', pvp.state === 'god');
   const potentialUsage = usageFor(['god', 'swap'].includes(pve.state), ['god', 'swap'].includes(pvp.state));
+  const nearUsage = usageFor(pve.distance === 1, pvp.distance === 1);
   const state: LensState = usage !== 'none' ? 'god' : potentialUsage !== 'none' ? 'swap' :
     [pve, pvp].some(v => v.state === 'good') ? 'good' : [pve, pvp].some(v => v.state === 'partial') ? 'partial' :
     [pve, pvp].some(v => v.state === 'fixed') ? 'fixed' : 'unknown';
-  const badge = usage !== 'none' ? `★ ${usage.toUpperCase()}` : potentialUsage !== 'none' ? `↑ ${potentialUsage.toUpperCase()}` :
-    state === 'fixed' ? 'FIXED' : state === 'unknown' ? '?' : 'MATCH';
+  // Keep tiles quiet: exact matches first, then only activities one required slot away.
+  const badge = usage !== 'none' ? usage.toUpperCase() :
+    [pve.distance === 1 ? 'PVE-1' : '', pvp.distance === 1 ? 'PVP-1' : ''].filter(Boolean).join(' ');
   const label = usage !== 'none' ? `${activityName(usage)} god roll` : potentialUsage !== 'none' ? `${activityName(potentialUsage)} god roll after perk swap` : labels[state];
-  return { pve, pvp, usage, potentialUsage, state, label, badge };
+  return { pve, pvp, usage, potentialUsage, nearUsage, state, label, badge };
 }

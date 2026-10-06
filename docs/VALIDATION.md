@@ -1,5 +1,11 @@
 # Release validation
 
+## Version 2.0.1 — October 6, 2026
+
+Focused regressions confirm that tiles show only PVE / PVP / BOTH for active god rolls, PVE-1 / PVP-1 when exactly one slot required by the selected definition is not active, and no badge for other rolls. God-roll labels take priority over the other activity's one-away label. Unknown/fixed items cannot acquire a one-away label. Removal and recreation after item mutations, and settling without repeat writes on unlabeled tiles, are covered.
+
+TypeScript, browser packages and built-content integration checks passed. The existing temporary add-on was reloaded in signed-in Firefox Nightly: live inventory tiles showed all five permitted labels, dual one-away labels wrapped cleanly, and fixed/unrated/two-away items had no overlay label. DIM's own item details remain visible. The prior release's dashboard and detailed activity behavior are unchanged.
+
 ## Version 2.0.0 — October 6, 2026
 
 - Unit and DOM checks passed: source isolation, active versus selectable traits, strict matching, missing data, fixed exotics, HTML escaping, badge deduplication, dashboard filters/search and focus return.

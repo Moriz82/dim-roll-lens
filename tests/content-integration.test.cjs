@@ -22,7 +22,7 @@ window.console={...console,debug:()=>{}};
 window.eval(fs.readFileSync(path.resolve('dist/content.js'),'utf8'));
 (async()=>{
   await new Promise(r=>setTimeout(r,450));
-  assert.equal(tile.querySelector('.rl-badge')?.textContent,'★ PVE','Full built content must evaluate real bundled recommendation names and render the badge');
+  assert.equal(tile.querySelector('.rl-badge')?.textContent,'PVE','Full built content must evaluate real bundled recommendation names and render the badge');
   assert.equal(tile.dataset.rlUsage,'pve');
   assert.equal(tile.querySelectorAll('.rl-badge').length,1);
   const panel=window.document.getElementById('rl-dashboard');
@@ -35,8 +35,11 @@ window.eval(fs.readFileSync(path.resolve('dist/content.js'),'utf8'));
   const map=JSON.parse(tile.dataset.aegisPerksData);map[3].name='Unrecommended trait';tile.dataset.aegisPerksData=JSON.stringify(map);
   await new Promise(r=>setTimeout(r,350));assert.notEqual(tile.dataset.rlUsage,'pve');
   assert.equal(tile.querySelectorAll('.rl-badge').length,1);
+  assert.equal(tile.querySelector('.rl-badge').textContent,'PVE-1');
+  map[4].name='Another unrecommended trait';tile.dataset.aegisPerksData=JSON.stringify(map);
+  await new Promise(r=>setTimeout(r,250));assert.equal(tile.querySelector('.rl-badge'),null,'Two missing traits must leave the tile clean');
   // No PvP source must not silently fall back to PvE recommendations.
-  map[3].name=names[2]; tile.dataset.aegisPerksData=JSON.stringify(map);
+  map[3].name=names[2]; map[4].name=names[3]; tile.dataset.aegisPerksData=JSON.stringify(map);
   await window.chrome.storage.local.set({aegisSheetDbPvP:null});
   await new Promise(r=>setTimeout(r,250));
   assert.equal(tile.dataset.rlUsage,'pve');

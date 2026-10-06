@@ -14,13 +14,14 @@ Built on [Maxeption’s dim-aegis-overlay](https://github.com/Maxeption/dim-aegi
 
 | Tile label | Meaning |
 | --- | --- |
-| **★ PVE** | Your active perks meet the PvE god-roll definition. |
-| **★ PVP** | Your active perks meet the PvP god-roll definition. |
-| **★ BOTH** | Your active perks meet both definitions at the same time. |
-| **↑ PVE / PVP / BOTH** | Recommended perks are present, but you must select them in DIM. |
-| **MATCH** | Partial recommendation match or great traits under strict matching. |
-| **?** | No usable recommendation or missing item data. This does not mean bad. |
-| **FIXED** | An exotic treated as fixed by the source, rather than a random-roll god verdict. |
+| **PVE** | Your active perks meet the PvE god-roll definition. |
+| **PVP** | Your active perks meet the PvP god-roll definition. |
+| **BOTH** | Your active perks meet both definitions at the same time. |
+| **PVE-1** | Exactly one required PvE slot is not an active match. |
+| **PVP-1** | Exactly one required PvP slot is not an active match. |
+| **No label** | All other rolls, including fixed exotics, unrated items and rolls two or more slots away. |
+
+God-roll labels take priority. A PvE god roll that is one perk short for PvP shows **PVE**. If both activities are one perk short, it shows **PVE-1 PVP-1**. A `-1` perk may be selectable or missing; open the item for that distinction. Other overlay tier/grade badges are hidden while Roll Lens is enabled, including armor badges. Detailed explanations remain available in the dashboard and item cards.
 
 PvE uses **Aegis**. PvP uses **Finnald / Pride Eternal**. Activity verdicts use actual perk matches, independently of the weapon’s meta tier and optional Light.gg popularity grade.
 
@@ -34,7 +35,7 @@ The dropdown in the toolbar popup selects your definition. Each item’s explana
 - Simultaneous PvE, PvP and both labels, with optional keeper outlines.
 - A **Roll Lens** button inside DIM opens a searchable inventory overview.
 - Filter god rolls by activity, find perk swaps, and inspect unrated weapons.
-- Separate active, selectable and missing perks, plus masterwork matching and source notes.
+- Clean tile labels only for god rolls and rolls one required slot away. Separate active, selectable and missing perks in the detailed breakdown, plus masterwork matching and source notes.
 - Keyboard-accessible dialog, search, filters and close controls; narrow-screen layout.
 - Bundled public recommendations for an offline first load, plus daily refresh. Failed/empty refreshes preserve cached ratings.
 - Simple toolbar settings with upstream advanced customization, wishlist, armor, explorer and optional Light.gg tools still available.
