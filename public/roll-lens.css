@@ -89,6 +89,10 @@
 .rl-inspector-overview > span { display:grid; grid-template-columns:auto 1fr; align-items:center; gap:6px; background:#080d1580; border:1px solid var(--rl-line); border-radius:6px; padding:7px 9px; font-size:11px; }
 .rl-inspector-overview > span > span { text-align:right; }.rl-inspector-overview small { grid-column:1/-1; color:var(--rl-muted); font-size:10px; }
 .rl-inspector-overview b { font-size:12px; }.rl-inspector-overview > .rl-inspector-pve b { color:var(--rl-e); }.rl-inspector-overview > .rl-inspector-pvp b { color:var(--rl-p); }
+.rl-inspector .rl-inspector-ranking { display:flex; flex-wrap:wrap; align-items:center; gap:6px; color:var(--rl-muted); font-size:10px; }
+.rl-inspector-activity .rl-inspector-ranking { margin-bottom:8px; }
+.rl-inspector-tier { display:inline-block; padding:2px 6px; border:1px solid currentColor; border-radius:4px; font:700 10px/1.3 system-ui,sans-serif; color:var(--rl-muted); }
+.rl-inspector-tier[data-tier="S"] { color:var(--rl-gold); background:#f4d38a12; }.rl-inspector-tier[data-tier="A"] { color:#c4afff; background:#c4afff10; }.rl-inspector-tier[data-tier="B"] { color:#9eceff; }.rl-inspector-tier[data-tier="C"] { color:#b7d5bc; }.rl-inspector-tier[data-tier="D"] { color:#f4bf97; }.rl-inspector-tier[data-tier="E"],.rl-inspector-tier[data-tier="F"] { color:#e8a3a3; }
 .rl-inspector-body { flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain; padding:12px; scrollbar-width:thin; }
 .rl-inspector-activity { padding:12px; border:1px solid var(--rl-line); border-radius:8px; background:var(--rl-panel); margin-bottom:12px; }
 .rl-inspector-activity.rl-inspector-pve { border-top:2px solid var(--rl-e); }.rl-inspector-activity.rl-inspector-pvp { border-top:2px solid var(--rl-p); }

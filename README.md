@@ -28,7 +28,7 @@ The gun's exact Bungie hash and legal trait pool help distinguish weapon edition
 
 Clicking an item opens DIM’s normal popup. Matching recommended perks receive a **gold circle and check** on their existing icons, including inactive choices. A **god-roll guide docks to the right side of the screen** beside the native popup. It shows PvE and PvP scores, recommended choices (Want), every owned option (Have), and exactly which slots are missing. Alternative source combinations stay separate, with the closest complete combination first. Source notes explain the author's reasoning when available. The guide closes with the item and can be dismissed independently. DIM's title actions and item controls stay intact. The optional **Roll Lens** dashboard provides an inventory overview.
 
-PvE uses **Aegis**. PvP uses **Finnald / Pride Eternal**. Recommendations reflect those sources; weapon meta tiers and optional Light.gg popularity grades do not establish a god roll.
+PvE uses **Aegis**. PvP uses **Finnald / Pride Eternal**. The guide shows each source's **weapon ranking tier (S, A, B, etc.)** beside its owned-roll score and in each recommendation. Tiers rank the weapon; a god roll still requires all five owned slots. Missing or ambiguous rankings show “Tier unavailable.” Recommendations reflect those sources; weapon meta tiers and optional Light.gg popularity grades do not establish a god roll.
 
 ## Features
 

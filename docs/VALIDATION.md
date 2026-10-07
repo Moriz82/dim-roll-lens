@@ -1,5 +1,13 @@
 # Release validation
 
+## Version 2.3.0 — October 6, 2026
+
+The right-side guide now displays separate Aegis PvE and Finnald PvP weapon tiers in its sticky overview and each source combination. Colored S/A/B/etc. badges appear beside the five-slot scores, with source attribution. Fixed weapons can retain a consistent known source tier while remaining ungraded. Missing or ambiguous ratings show Tier unavailable. Weapon ranking never changes the owned-roll score or inventory labels.
+
+- Focused DOM checks verified independent S/A activity ratings, ranking without a god-roll badge, fixed-roll ranking, ambiguous-source isolation and malformed-tier rejection. Existing unit/DOM checks, TypeScript, both production builds, built-bundle integrations, package validation and diff checks passed. A read-only reviewer found no material issue.
+- The private 371-item/four-store snapshot passed again for all 72 weapons, including 350 owned-hash checks, guide completeness and selection invariance. All inventory label counts stayed unchanged.
+- Live Firefox reload/visual validation was unavailable because the desktop browser-control tool was unavailable for this turn. The new Firefox package is ready at releases/firefox; it has not been reloaded into the existing signed-in temporary extension. Version 2.2.1 remains the last live-verified build.
+
 ## Version 2.2.1 — October 6, 2026
 
 Mint Retrograde's generic PvE recommendation contains an obsolete Slice alternative and an older origin trait. Previously either mismatch could discard every recommended choice and show Undefined. When all source rows are unversioned and strict compatibility finds none, the resolver now retains whole rows supported in both trait columns by the exact Bungie hash's legal pool, omitting unavailable trait alternatives. Named editions retain strict disambiguation. Manifest choices never count as owned, and all five owned slots remain required.
