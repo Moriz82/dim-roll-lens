@@ -26,9 +26,34 @@ resolved=resolveRollSourceCandidates(editionsDb,'Test weapon',123,origin,{...poo
 resolved=resolveRollSourceCandidates(editionsDb,'Test weapon',123,origin,{...pool,perkColumns:undefined});assert.equal(resolved.resolution,'ambiguous','Missing manifest columns safely retain origin ambiguity');
 const originsOnly={weapons:db.weapons,variants:{'test weapon':[{...first,origin:'Origin'},{...newEdition,origin:'Origin\nNew origin'}]}};
 resolved=resolveRollSourceCandidates(originsOnly,'Test weapon',1,[...origin,{slot:'origin',hash:100,name:'New origin',active:false,icon:''}]);assert.deepEqual(resolved.rows,[originsOnly.variants['test weapon'][1]],'Full origin sets distinguish editions sharing a vendor trait');
+
+// A generic source can lag behind an exact hash's perk pool and origin metadata.
+const fs=require('node:fs');
+const mintDb=JSON.parse(fs.readFileSync('data/pve-database.json','utf8'));
+const mintWeapon=JSON.parse(fs.readFileSync('data/manifest-weapons.json','utf8')).find(w=>w.hash===3285784871);
+const mintOrigins=mintWeapon.origins.map((name,i)=>({slot:'origin',hash:100+i,name,active:false,icon:''}));
+const mintSource=JSON.stringify(mintDb.variants['mint retrograde']);
+resolved=resolveRollSourceCandidates(mintDb,mintWeapon.name,mintWeapon.hash,mintOrigins,mintWeapon);
+assert.equal(resolved.resolution,'resolved','Mint Retrograde retains valid PvE choices despite obsolete Slice and origin metadata');
+assert.equal(resolved.rows[0].perk2,'Master of Arms\nChain Reaction','Unavailable source alternatives are omitted for this exact hash');
+assert.equal(JSON.stringify(mintDb.variants['mint retrograde']),mintSource,'Source snapshots are never mutated');
+const mintOwned=group();
+['Quick Launch','Appended Mag','Beacon Rounds','Master of Arms','Reload'].forEach((name,i)=>mintOwned.slots[['barrel','mag','perk1','perk2','masterwork'][i]].plugs[0].name=name);
+const mintPayload={...payload(mintOwned),name:mintWeapon.name,sheetWeaponPvECandidates:resolved.rows,sourceResolutionPvE:resolved.resolution};
+assert.equal(evaluateLens(mintPayload).badge,'PVE','A retained whole combination still requires all five owned slots');
+['Confined Launch','High-Velocity Rounds','Envious Arsenal','Frenzy','Blast Radius'].forEach((name,i)=>mintOwned.slots[['barrel','mag','perk1','perk2','masterwork'][i]].plugs[0].name=name);
+assert.equal(evaluateLens(mintPayload).pve.matchedCount,0,'The reported gun is evaluated without treating unavailable or unrecommended perks as god rolls');
+assert.equal(resolveRollSourceCandidates(mintDb,mintWeapon.name,1,mintOrigins,mintWeapon).resolution,'ambiguous','Stale origin recovery requires the exact item hash');
+const stale={...sheet,origin:'Old origin',perk1:'Trait A\nRemoved A',perk2:'Trait B\nRemoved B'};
+const staleDb={weapons:{'test weapon':stale},variants:{'test weapon':[stale]}};
+const stalePool={hash:123,name:'Test weapon',perkColumns:[['Trait A'],['Trait B']]};
+assert.equal(resolveRollSourceCandidates(staleDb,'Test weapon',123,origin,{...stalePool,perkColumns:[['Trait A'],['Unrelated B']]}).resolution,'ambiguous','One overlapping column cannot establish compatibility');
+assert.equal(resolveRollSourceCandidates(staleDb,'Test weapon',123,origin,{...stalePool,perkColumns:[['Trait A'],[]]}).resolution,'ambiguous','Incomplete identity cannot recover stale metadata');
+const staleEditions={...staleDb,variants:{'test weapon':[{...stale,name:'Test weapon (Release A)',versionTag:'Release A'},{...stale,name:'Test weapon (Release B)',versionTag:'Release B'}]}};
+assert.equal(resolveRollSourceCandidates(staleEditions,'Test weapon',123,origin,stalePool).resolution,'ambiguous','Partial overlap cannot select among named editions');
 const {buildOwnedRollData}=load('owned-rolls');
 const fixedSocket={socketDefinition:{socketTypeHash:1215804697},hasRandomizedPlugItems:false,plugged:{plugDef:{hash:777,displayProperties:{name:'Trait A'},plug:{plugCategoryIdentifier:'frames'}}}};
 assert.equal(buildOwnedRollData([fixedSocket]).randomizedTraits,false);
 assert.equal(buildOwnedRollData([{...fixedSocket,hasRandomizedPlugItems:true}]).randomizedTraits,true);
 assert.equal(buildOwnedRollData([{...fixedSocket,hasRandomizedPlugItems:undefined}]).randomizedTraits,undefined);
-console.log('19 source/ownership checks passed: whole combinations, exact columns, hash-based edition identity, fixed-trait metadata, unresolved isolation and label precedence.');
+console.log('Source/ownership checks passed: whole combinations, exact columns, hash-based edition identity, fixed-trait metadata, unresolved isolation and label precedence.');

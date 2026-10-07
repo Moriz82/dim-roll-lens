@@ -15,6 +15,10 @@ function fitsTraitPool(row:AegisSheetWeapon, weapon:WeaponIdentity):boolean {
     return wanted.length>0 && possible.size>0 && wanted.every(choice=>possible.has(choice));
   });
 }
+function availableTraitChoices(raw:string, possible:string[]):string {
+  const pool=new Set(possible.map(normalizeRollPerk));
+  return raw.split(/[\n/,]+/).map(choice=>choice.trim()).filter(choice=>pool.has(normalizeRollPerk(choice))).join('\n');
+}
 /** Resolve the weapon edition first; only whole rows in that edition are candidates. */
 export function resolveRollSourceCandidates(db:AegisSheetDatabase|null|undefined,name:string,itemHash:number|undefined,owned:OwnedRollPerk[],weapon?:WeaponIdentity):SourceCandidates {
   if(!db?.weapons)return {rows:[],resolution:'missing'};
@@ -30,7 +34,16 @@ export function resolveRollSourceCandidates(db:AegisSheetDatabase|null|undefined
   // The exact Bungie hash's legal trait pool identifies editions independently
   // of which traits this instance owns. It is never added to the owned roll.
   const identity=weapon && weapon.hash===itemHash && base(weapon.name)===base(nativeName) ? weapon : undefined;
-  const compatible=identity ? rows.filter(row=>fitsTraitPool(row,identity)) : [];
+  let compatible=identity ? rows.filter(row=>fitsTraitPool(row,identity)) : [];
+  // An unversioned recommendation may contain an obsolete alternative or origin.
+  // Recover only when the exact hash still supports choices in BOTH trait columns.
+  // Named editions keep strict disambiguation; owned traits never select a source.
+  if(!compatible.length && identity && rows.every(row=>edition(row)==='original')) {
+    compatible=rows.map(row=>({...row,
+      perk1:availableTraitChoices(row.perk1||'',identity.perkColumns?.[0]||[]),
+      perk2:availableTraitChoices(row.perk2||'',identity.perkColumns?.[1]||[])
+    })).filter(row=>fitsTraitPool(row,identity));
+  }
   if(compatible.length)rows=compatible;
   const withOrigin=rows.filter(row=>originChoices(row.origin||'').some(o=>origins.includes(o)));
   if(withOrigin.length)rows=withOrigin;

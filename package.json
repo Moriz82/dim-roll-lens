@@ -1,6 +1,6 @@
 {
   "name": "dim-roll-lens",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "Instant PvE, PvP and dual-purpose god-roll verdicts inside Destiny Item Manager",
   "type": "module",
   "scripts": {

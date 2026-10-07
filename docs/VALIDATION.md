@@ -1,5 +1,14 @@
 # Release validation
 
+## Version 2.2.1 — October 6, 2026
+
+Mint Retrograde's generic PvE recommendation contains an obsolete Slice alternative and an older origin trait. Previously either mismatch could discard every recommended choice and show Undefined. When all source rows are unversioned and strict compatibility finds none, the resolver now retains whole rows supported in both trait columns by the exact Bungie hash's legal pool, omitting unavailable trait alternatives. Named editions retain strict disambiguation. Manifest choices never count as owned, and all five owned slots remain required.
+
+- The public Mint source/hash regression failed before the fix and passes afterward. Checks cover unavailable alternatives, source immutability, a complete owned 5/5 combination, the reported nonmatching roll, wrong identity, missing trait-pool data, one-column overlap and ambiguous named editions. A read-only reviewer found no material issue.
+- The previous private four-store snapshot passed again for **389 items and 97 weapons**, with 497 owned-hash checks and unchanged selection-independent grading. A fresh signed-in snapshot passed for **all 371 current items and 72 weapons** across four error-free stores: 350 owned-hash checks, 72 guide cases and selected-perk reversals. Current labels: 3 PVE, 6 PVP, 3 PVE-1, 7 PVP-1, 1 dual one-away, 48 blank and 4 UNDEF. Both snapshots remain local and ignored.
+- Unit/DOM tests, TypeScript, both production builds, all three built-bundle integrations, both package checks and diff checks passed.
+- The packaged 2.2.1 Firefox extension was reloaded in signed-in DIM. The exact reported Mint Retrograde now shows **PvE 0/5 and PvP 2/5**, with all five PvE Want/Have comparisons instead of an edition error. Its guide omits unavailable Slice, retains the valid source choices, has one native recommended-perk check and no added item card. The temporary debugging tab and console were closed; Firefox remains on that weapon's repaired guide.
+
 ## Version 2.2.0 — October 6, 2026
 
 Opening a weapon now displays a guide at the right edge of the viewport beside DIM's native popup. Both activity scores and missing-slot summaries remain visible above the scrollable breakdown. Each source combination shows all five recommended slots (Want), every owned option (Have), checks on owned recommendations, and available source notes. Multiple source rows remain separate; the closest complete row appears first. Fixed rolls and incomplete coverage receive explanations rather than invented recommendations.
