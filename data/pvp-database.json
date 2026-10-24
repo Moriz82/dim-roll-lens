@@ -52163,7 +52163,7 @@
         "isExotic": false
       },
       {
-        "role": "Energy  Vorpal Weapon Primary",
+        "role": "Energy Vorpal Weapon Primary",
         "name": "Cantata-57",
         "source": "Gunsmith Legacy Focusing",
         "priorityNum": 1,
@@ -53316,7 +53316,7 @@
         "isExotic": false
       },
       "cantata-57": {
-        "role": "Energy  Vorpal Weapon Primary",
+        "role": "Energy Vorpal Weapon Primary",
         "name": "Cantata-57",
         "source": "Gunsmith Legacy Focusing",
         "priorityNum": 1,
@@ -54388,7 +54388,7 @@
       },
       "the third axiom, nullify, aisha's embrace, breachlight, drang (baroque), insidious, or sweet sorrow": {
         "primaryName": "Cantata-57",
-        "role": "Energy  Vorpal Weapon Primary",
+        "role": "Energy Vorpal Weapon Primary",
         "priority": "high",
         "priorityNum": 1
       },
